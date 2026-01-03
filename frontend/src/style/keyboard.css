@@ -278,6 +278,12 @@ nav a:hover {
     justify-content: space-between;
     align-items: flex-start;
     margin-bottom: 0.25rem;
+    gap: 1rem;
+}
+
+.item-actions {
+    display: flex;
+    gap: 0.5rem;
 }
 
 .music-item .timestamp,
@@ -304,9 +310,21 @@ nav a:hover {
     transition: all 0.2s ease;
 }
 
-.delete-button:hover {
+.delete-button:hover,
+.edit-button:hover {
     background-color: rgba(47, 48, 67, 0.05);
     transform: scale(1.05);
+}
+
+.edit-button {
+    padding: 5px 15px;
+    background-color: transparent;
+    color: #2F3043;
+    border: 2px solid #2F3043;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    transition: all 0.2s ease;
 }
 
 .modal-overlay {

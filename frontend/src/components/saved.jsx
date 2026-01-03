@@ -3,9 +3,11 @@ import { musicService } from '../services/music';
 import ABCJS from 'abcjs';
 import { toast } from 'react-toastify';
 import { useAuth } from '../contexts/AuthContext';
+import Modal from './Modal';
 
 const Saved = () => {
     const [savedPieces, setSavedPieces] = useState([]);
+    const [editingPiece, setEditingPiece] = useState(null);
     const { user } = useAuth();
 
     useEffect(() => {
@@ -51,12 +53,24 @@ const Saved = () => {
         try {
             await musicService.deleteMusic(id);
             // Update local state to remove the deleted piece
-            // MongoDB uses _id, but support both _id and id for compatibility
             setSavedPieces(prev => prev.filter(piece => (piece._id || piece.id) !== id));
             toast.success('Sheet music deleted successfully!');
         } catch (error) {
             console.error('Error deleting sheet music:', error);
             toast.error(error.response?.data?.message || 'Failed to delete sheet music');
+        }
+    };
+
+    const handleEditConfirm = async (title, description) => {
+        if (!editingPiece) return;
+        const id = editingPiece._id || editingPiece.id;
+        try {
+            const updated = await musicService.updateMusic(id, { title, description });
+            setSavedPieces(prev => prev.map(p => (p._id || p.id) === id ? updated : p));
+            setEditingPiece(null);
+        } catch (error) {
+            console.error('Error updating sheet music:', error);
+            throw error; // Let modal catch it for error message
         }
     };
 
@@ -73,14 +87,22 @@ const Saved = () => {
                             <div key={pieceId} className="music-item">
                                 <div className="music-item-header">
                                     <h3>{piece.title}</h3>
-                                    <button 
-                                        onClick={() => handleDelete(pieceId)}
-                                        className="delete-button"
-                                    >
-                                        Delete
-                                    </button>
+                                    <div className="item-actions">
+                                        <button
+                                            onClick={() => setEditingPiece(piece)}
+                                            className="edit-button"
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(pieceId)}
+                                            className="delete-button"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
                                 </div>
-                                <p className="timestamp">Created: {new Date(piece.timestamp).toLocaleString()}</p>
+                                <p className="timestamp">Created: {new Date(piece.timestamp || piece.createdAt).toLocaleString()}</p>
                                 {piece.description && (
                                     <p className="description">{piece.description}</p>
                                 )}
@@ -90,6 +112,14 @@ const Saved = () => {
                     })}
                 </div>
             )}
+            <Modal
+                isOpen={!!editingPiece}
+                onClose={() => setEditingPiece(null)}
+                onConfirm={handleEditConfirm}
+                initialTitle={editingPiece?.title || ''}
+                initialDescription={editingPiece?.description || ''}
+                header="Edit Music Details"
+            />
         </div>
     );
 };

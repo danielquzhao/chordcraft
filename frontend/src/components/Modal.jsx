@@ -1,29 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 
-const Modal = ({ isOpen, onClose, onConfirm }) => {
-    if (!isOpen) return null;
+const Modal = ({ isOpen, onClose, onConfirm, initialTitle = '', initialDescription = '', header = 'Save Sheet Music' }) => {
+    const [title, setTitle] = useState(initialTitle);
+    const [description, setDescription] = useState(initialDescription);
 
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
+    useEffect(() => {
+        if (isOpen) {
+            setTitle(initialTitle);
+            setDescription(initialDescription);
+        }
+    }, [isOpen, initialTitle, initialDescription]);
+
+    if (!isOpen) return null;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
             await onConfirm(title, description);
-            toast.success('Sheet music saved successfully!');
-            setTitle('');
-            setDescription('');
+            toast.success('Successfully updated!');
+            if (!initialTitle) { // Only clear if it was a new save
+                setTitle('');
+                setDescription('');
+            }
         } catch (error) {
-            toast.error('Failed to save sheet music');
-            console.error('Error saving sheet music:', error);
+            toast.error('Operation failed');
+            console.error('Error:', error);
         }
     };
 
     return (
         <div className="modal-overlay">
             <div className="modal-content">
-                <h2>Save Sheet Music</h2>
+                <h2>{header}</h2>
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
                         <label htmlFor="title">Title:</label>
@@ -49,7 +58,7 @@ const Modal = ({ isOpen, onClose, onConfirm }) => {
                             Cancel
                         </button>
                         <button type="submit" className="confirm-button">
-                            Save
+                            Confirm
                         </button>
                     </div>
                 </form>
