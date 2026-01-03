@@ -70,7 +70,9 @@ body {
     max-width: 900px;
     margin: 0.25rem auto;
     overflow-x: hidden;
+    overflow-y: auto;
     line-height: 1.2;
+    flex: 1;
 }
 
 #sheet-music img {
@@ -164,9 +166,9 @@ body {
 /* Update existing nav styles */
 nav {
     padding: 1rem 0.5rem;
-    margin: 0 auto;
     max-width: 1200px;
-    text-align: left;
+    text-align: center;
+    width: 100%;
 }
 
 nav a {
@@ -195,9 +197,10 @@ nav a:hover {
 /* Add padding to the outer container */
 .app-container {
     width: 100%;
-    height: 100%;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
+    align-items: center;
 }
 
 .key-label {
@@ -235,6 +238,8 @@ nav a:hover {
     max-width: 1600px;
     margin-left: auto;
     margin-right: auto;
+    overflow-y: auto;
+    flex: 1;
 }
 
 .music-item {
@@ -379,22 +384,20 @@ nav a:hover {
     opacity: 0.7;
 }
 
-/* Update content containers to use viewport height */
+/* Update content containers to match home page height logic */
 .keyboard-content,
 .saved-music {
     padding: 1rem;
     max-width: 1200px;
-    margin: 0 auto;
     text-align: center;
-    min-height: 100vh;
-}
-
-.keyboard-content,
-.saved-music {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-items: center;
     flex: 1;
+    position: relative;
+    overflow: hidden;
+    width: 100%;
 }
 
 /* Consolidated .home-content above */
