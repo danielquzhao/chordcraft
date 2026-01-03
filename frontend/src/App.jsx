@@ -348,7 +348,6 @@ function Home() {
             <div className="logo-top-left">ChordCraft 🎵</div>
 
             <div className="hero-text">
-                <div className="sparkle">✦</div>
                 <h1>Your intelligent <br />musical companion</h1>
                 <p className="hero-subtitle">
                     Transform your piano performances into professional sheet music instantly.
