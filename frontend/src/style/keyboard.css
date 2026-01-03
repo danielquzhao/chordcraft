@@ -1,17 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500&display=swap');
 
+* {
+    box-sizing: border-box;
+}
+
+html,
 body {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+}
+
+body {
     font-family: 'Poppins', sans-serif;
     background-image: url('../images/background.png');
-    background-size: 100% auto;
-    background-position: top center;
+    background-size: cover;
+    background-position: center;
     background-repeat: no-repeat;
-    background-attachment: scroll;
-    min-height: 100vh;
-    margin: 0;
+    background-attachment: fixed;
 }
 
 .container {
@@ -145,11 +153,10 @@ body {
 
 /* Update existing nav styles */
 nav {
-    padding: 1.5rem 0.5rem;
-    margin: 2rem auto 1rem auto;
+    padding: 1rem 0.5rem;
+    margin: 0 auto;
     max-width: 1200px;
     text-align: left;
-    min-height: 40px;
 }
 
 nav a {
@@ -177,9 +184,8 @@ nav a:hover {
 
 /* Add padding to the outer container */
 .app-container {
-    padding: 1rem;
-    width: 100vw;
-    min-height: 100vh;
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
 }
@@ -388,13 +394,11 @@ nav a:hover {
     justify-content: flex-start;
     text-align: left;
     width: 100%;
-    margin: 0;
-    padding: 2rem 2rem 2rem 6rem;
-    min-height: 85vh;
+    padding: 0 2rem 0 6rem;
+    flex: 1;
     position: relative;
     overflow: hidden;
     background-color: transparent;
-    /* Transparent to show gradient background */
 }
 
 .logo-top-left {
@@ -412,7 +416,7 @@ nav a:hover {
     max-width: 800px;
     position: relative;
     z-index: 10;
-    padding-bottom: 5rem;
+    padding-bottom: 2rem;
 }
 
 .hero-text h1 {
