@@ -391,10 +391,10 @@ nav a:hover {
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: space-between;
     text-align: left;
     width: 100%;
-    padding: 0 2rem 0 6rem;
+    padding: 0 6rem;
     flex: 1;
     position: relative;
     overflow: hidden;
@@ -497,20 +497,82 @@ nav a:hover {
 .hero-graphic {
     flex: 0.8;
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
     align-items: center;
     position: relative;
-    z-index: 1;
+    z-index: 5;
 }
 
-.sun-glow {
-    width: 350px;
-    height: 350px;
-    background: radial-gradient(circle, rgba(255, 230, 100, 0.5) 0%, rgba(255, 180, 50, 0.2) 40%, transparent 70%);
-    border-radius: 50%;
-    filter: blur(40px);
+.floating-piano {
+    width: 130%;
+    max-width: 750px;
+    height: auto;
+    filter: drop-shadow(0 20px 50px rgba(93, 79, 229, 0.15));
+    animation: floatPiano 8s ease-in-out infinite;
+    transform-origin: center;
     position: relative;
-    right: -50px;
+    right: -2rem;
+}
+
+.music-note {
+    position: absolute;
+    font-size: 2.5rem;
+    color: #5D4FE5;
+    opacity: 0;
+    pointer-events: none;
+    animation: floatNote 4s linear infinite;
+}
+
+.note-1 {
+    top: 20%;
+    left: 10%;
+    animation-delay: 0s;
+}
+
+.note-2 {
+    top: 40%;
+    left: 80%;
+    animation-delay: 1.5s;
+    font-size: 3rem;
+}
+
+.note-3 {
+    top: 70%;
+    left: 20%;
+    animation-delay: 3s;
+    font-size: 2rem;
+}
+
+@keyframes floatPiano {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(-2deg) scale(1);
+    }
+
+    50% {
+        transform: translateY(-30px) rotate(1deg) scale(1.02);
+    }
+}
+
+@keyframes floatNote {
+    0% {
+        transform: translate(0, 0) rotate(0deg);
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 0.6;
+    }
+
+    80% {
+        opacity: 0.6;
+    }
+
+    100% {
+        transform: translate(20px, -100px) rotate(20deg);
+        opacity: 0;
+    }
 }
 
 /* Background Blobs */

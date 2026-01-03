@@ -369,6 +369,12 @@ function Home() {
                     </button>
                 )}
             </div>
+            <div className="hero-graphic">
+                <img src="/images/piano.png" alt="Piano" className="floating-piano" />
+                <div className="music-note note-1">♪</div>
+                <div className="music-note note-2">♫</div>
+                <div className="music-note note-3">♩</div>
+            </div>
 
             <AuthModal
                 isOpen={isAuthModalOpen}
