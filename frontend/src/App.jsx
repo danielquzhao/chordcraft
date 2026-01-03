@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import Keyboard from "./components/keyboard";
 import Saved from "./components/saved";
 import ABCJS from "abcjs";
-import { Routes, Route, BrowserRouter, Link, Navigate, useNavigate } from "react-router-dom";
+import { Routes, Route, BrowserRouter, Link, Navigate, useNavigate, useLocation } from "react-router-dom";
 import "./style/keyboard.css";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -14,7 +14,7 @@ function KeyboardPage({ activeKeys, keyMap, abcNotation, onClear, setIsModalOpen
     useEffect(() => {
         // Set keyboard page as active when component mounts
         setIsOnKeyboardPage(true);
-        
+
         return () => {
             // Set keyboard page as inactive when component unmounts
             setIsOnKeyboardPage(false);
@@ -69,7 +69,18 @@ function PrivateRoute({ children }) {
 function Navigation() {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+    // Don't show navbar on home page if not logged in
+    if (!user && location.pathname === '/') {
+        return (
+            <AuthModal
+                isOpen={isAuthModalOpen}
+                onClose={() => setIsAuthModalOpen(false)}
+            />
+        );
+    }
 
     const handleSignOut = async () => {
         try {
@@ -94,20 +105,20 @@ function Navigation() {
                 ) : (
                     <>
                         <Link to="/">Home</Link> |{" "}
-                        
-                        <button 
-                            onClick={() => setIsAuthModalOpen(true)} 
+
+                        <button
+                            onClick={() => setIsAuthModalOpen(true)}
                             className="nav-button"
                         >
                             Sign In
                         </button>
                     </>
-                    
+
                 )}
             </nav>
-            <AuthModal 
-                isOpen={isAuthModalOpen} 
-                onClose={() => setIsAuthModalOpen(false)} 
+            <AuthModal
+                isOpen={isAuthModalOpen}
+                onClose={() => setIsAuthModalOpen(false)}
             />
         </>
     );
@@ -191,13 +202,13 @@ function App() {
     const handleKeyDown = (event) => {
         // If we're on keyboard page but modal is open, or keyboard is disabled, don't handle piano events
         if (!isOnKeyboardPage || !isKeyboardEnabled || isModalOpen) return;
-        
+
         // Check if we're typing in an input or textarea
         if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return;
-        
+
         // Prevent key repeat
         if (event.repeat || heldKeys.has(event.key)) return;
-        
+
         const note = keyMap[event.key];
         if (note && !activeKeys.includes(note)) {
             setHeldKeys(prev => new Set([...prev, event.key]));
@@ -238,7 +249,7 @@ function App() {
     const handleKeyUp = (event) => {
         // If modal is open or typing in form fields, don't handle piano events
         if (!isOnKeyboardPage || isModalOpen) return;
-        
+
         // Check if we're typing in an input or textarea
         if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return;
 
@@ -308,7 +319,7 @@ function App() {
                             }
                         />
                     </Routes>
-                    
+
                     <ToastContainer
                         position="bottom-right"
                         autoClose={3000}
@@ -328,9 +339,45 @@ function App() {
 }
 
 function Home() {
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const { user } = useAuth();
+    const navigate = useNavigate();
+
     return (
         <div className="home-content">
-            <h1>Welcome to ChordCraft</h1>
+            <div className="logo-top-left">ChordCraft 🎵</div>
+            <div className="blob blob-1"></div>
+            <div className="blob blob-2"></div>
+            <div className="hero-text">
+                <div className="sparkle">✦</div>
+                <h1>Your intelligent <br />musical companion</h1>
+                <p className="hero-subtitle">
+                    Transform your piano performances into professional sheet music instantly.
+                    ChordCraft is the real-time assistant for composers and students.
+                </p>
+                {!user ? (
+                    <button
+                        onClick={() => setIsAuthModalOpen(true)}
+                        className="get-started-btn"
+                    >
+                        Get started <span className="arrow">→</span>
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => navigate('/keyboard')}
+                        className="get-started-btn"
+                    >
+                        Go to Keyboard <span className="arrow">→</span>
+                    </button>
+                )}
+            </div>
+            <div className="hero-graphic">
+                <div className="sun-glow"></div>
+            </div>
+            <AuthModal
+                isOpen={isAuthModalOpen}
+                onClose={() => setIsAuthModalOpen(false)}
+            />
         </div>
     );
 }
