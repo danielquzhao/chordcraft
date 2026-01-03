@@ -2,7 +2,7 @@
 
 body {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     font-family: 'Poppins', sans-serif;
     background-image: url('../images/background.png');
@@ -178,6 +178,7 @@ nav a:hover {
 /* Add padding to the outer container */
 .app-container {
     padding: 1rem;
+    width: 100vw;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -384,11 +385,11 @@ nav a:hover {
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     text-align: left;
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 2rem 5rem;
+    width: 100%;
+    margin: 0;
+    padding: 2rem 2rem 2rem 6rem;
     min-height: 85vh;
     position: relative;
     overflow: hidden;
@@ -399,7 +400,7 @@ nav a:hover {
 .logo-top-left {
     position: absolute;
     top: 3rem;
-    left: 5rem;
+    left: 6rem;
     font-size: 1.5rem;
     font-weight: 700;
     color: #2F3043;
