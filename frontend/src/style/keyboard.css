@@ -699,24 +699,25 @@ nav a:hover {
 
     .home-content {
         flex-direction: column;
-        padding: 2rem;
+        padding: 1rem 2rem;
         text-align: center;
         justify-content: center;
         align-items: center;
         height: 100%;
         width: 100%;
+        overflow: visible;
     }
 
     .logo-top-left {
-        position: relative;
-        left: auto;
-        top: auto;
-        margin-bottom: 3rem;
-        font-size: 2.2rem;
+        position: absolute;
+        left: 1.5rem;
+        top: 1rem;
+        margin: 0;
+        font-size: 2rem;
     }
 
     .hero-text {
-        padding-top: 0;
+        padding-top: 4rem;
         margin: 0;
         width: 100%;
         display: flex;
@@ -725,7 +726,7 @@ nav a:hover {
     }
 
     .hero-text h1 {
-        font-size: 3.5rem;
+        font-size: 3rem;
     }
 
     .hero-subtitle {
