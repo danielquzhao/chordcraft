@@ -1,0 +1,31 @@
+{
+  "name": "chordcraft",
+  "version": "1.0.0",
+  "description": "🦆 GeeseHacks '25 Submission 👨‍💻 Ivy Cho, Henry Hung, Ryan Xiao, Daniel Zhao",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
+    "install-all": "npm install && npm install --workspace=backend && npm install --workspace=frontend",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danielquzhao/chordcraft.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/danielquzhao/chordcraft/issues"
+  },
+  "homepage": "https://github.com/danielquzhao/chordcraft#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
