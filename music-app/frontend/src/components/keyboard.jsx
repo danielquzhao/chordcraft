@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { database } from '../firebase/firebase';
-import { ref, push } from 'firebase/database';
+import { musicService } from '../services/music';
 import Modal from './Modal';
 import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'react-toastify';
 
 const Keyboard = ({ activeKeys, onClear, abcNotation, setIsModalOpen, isModalOpen }) => {
     const { user } = useAuth();
@@ -65,18 +65,16 @@ const Keyboard = ({ activeKeys, onClear, abcNotation, setIsModalOpen, isModalOpe
 
     const handleSaveConfirm = async (title, description) => {
         try {
-            const musicRef = ref(database, `users/${user.uid}/sheetMusic`);
-            await push(musicRef, {
+            await musicService.saveMusic({
                 notation: abcNotation,
                 title,
-                description,
-                timestamp: Date.now()
+                description
             });
             setIsModalOpen(false);
             onClear();
         } catch (error) {
             console.error('Error saving sheet music:', error);
-            alert('Failed to save sheet music');
+            toast.error(error.response?.data?.message || 'Failed to save sheet music');
         }
     };
 

@@ -8,8 +8,6 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthModal from "./components/AuthModal";
-<img class="group-23" src="music-app/src/assets/images/group-23.png" />
-
 
 // Create a separate KeyboardPage component
 function KeyboardPage({ activeKeys, keyMap, abcNotation, onClear, setIsModalOpen, isModalOpen, setIsOnKeyboardPage }) {

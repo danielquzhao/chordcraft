@@ -1,10 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { auth } from '../firebase/firebase.js';
-import { 
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
-    signOut as firebaseSignOut 
-} from 'firebase/auth';
+import { authService } from '../services/auth';
 import { toast } from 'react-toastify';
 
 const AuthContext = createContext();
@@ -19,27 +14,30 @@ export function AuthProvider({ children }) {
 
     const signUp = async (email, password) => {
         try {
-            await createUserWithEmailAndPassword(auth, email, password);
+            const data = await authService.signUp(email, password);
+            setUser(data.user);
             toast.success('Account created successfully!');
         } catch (error) {
-            toast.error(error.message);
+            toast.error(error.response?.data?.message || error.message);
             throw error;
         }
     };
 
     const signIn = async (email, password) => {
         try {
-            await signInWithEmailAndPassword(auth, email, password);
+            const data = await authService.signIn(email, password);
+            setUser(data.user);
             toast.success('Signed in successfully!');
         } catch (error) {
-            toast.error(error.message);
+            toast.error(error.response?.data?.message || error.message);
             throw error;
         }
     };
 
     const signOut = async () => {
         try {
-            await firebaseSignOut(auth);
+            authService.signOut();
+            setUser(null);
             toast.success('Signed out successfully!');
         } catch (error) {
             toast.error('Error signing out');
@@ -48,12 +46,10 @@ export function AuthProvider({ children }) {
     };
 
     useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged(user => {
-            setUser(user);
-            setLoading(false);
-        });
-
-        return unsubscribe;
+        // Check if user is already logged in on mount
+        const currentUser = authService.getCurrentUser();
+        setUser(currentUser);
+        setLoading(false);
     }, []);
 
     const value = {

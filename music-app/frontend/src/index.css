@@ -6,7 +6,7 @@
 }
 @font-face {
   font-family: 'Poppins-ExtraBold';
-  src: url('music-app/src/fonts/Poppins-Bold.ttf');
+  src: url('./fonts/Poppins-Bold.ttf');
 }
 
 

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { database } from '../firebase/firebase';
-import { ref, onValue, remove } from 'firebase/database';
+import { musicService } from '../services/music';
 import ABCJS from 'abcjs';
 import { toast } from 'react-toastify';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,30 +11,27 @@ const Saved = () => {
     useEffect(() => {
         if (!user) return;
 
-        // Update reference to user-specific path
-        const musicRef = ref(database, `users/${user.uid}/sheetMusic`);
-        
-        const unsubscribe = onValue(musicRef, (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                const piecesArray = Object.entries(data).map(([id, piece]) => ({
-                    id,
-                    ...piece
-                }));
-                setSavedPieces(piecesArray);
-            } else {
+        // Fetch all saved music from API
+        const fetchMusic = async () => {
+            try {
+                const data = await musicService.getAllMusic();
+                setSavedPieces(data);
+            } catch (error) {
+                console.error('Error fetching music:', error);
+                toast.error('Failed to load saved music');
                 setSavedPieces([]);
             }
-        });
+        };
 
-        return () => unsubscribe();
+        fetchMusic();
     }, [user]);
 
     // Render sheet music for each piece
     useEffect(() => {
         savedPieces.forEach(piece => {
+            const pieceId = piece._id || piece.id;
             const abcString = `X:1\nM:4/4\nL:1/4\nK:C\n${piece.notation}`;
-            ABCJS.renderAbc(`sheet-music-${piece.id}`, abcString, {
+            ABCJS.renderAbc(`sheet-music-${pieceId}`, abcString, {
                 responsive: 'resize',
                 staffwidth: 300, // Smaller width for preview
                 wrap: {
@@ -53,13 +49,14 @@ const Saved = () => {
 
     const handleDelete = async (id) => {
         try {
-            // Update reference to include user ID
-            const musicRef = ref(database, `users/${user.uid}/sheetMusic/${id}`);
-            await remove(musicRef);
+            await musicService.deleteMusic(id);
+            // Update local state to remove the deleted piece
+            // MongoDB uses _id, but support both _id and id for compatibility
+            setSavedPieces(prev => prev.filter(piece => (piece._id || piece.id) !== id));
             toast.success('Sheet music deleted successfully!');
         } catch (error) {
             console.error('Error deleting sheet music:', error);
-            toast.error('Failed to delete sheet music');
+            toast.error(error.response?.data?.message || 'Failed to delete sheet music');
         }
     };
 
@@ -70,24 +67,27 @@ const Saved = () => {
                 <p>No saved music pieces yet. Create something on the keyboard!</p>
             ) : (
                 <div className="music-list">
-                    {savedPieces.map(piece => (
-                        <div key={piece.id} className="music-item">
-                            <div className="music-item-header">
-                                <h3>{piece.title}</h3>
-                                <button 
-                                    onClick={() => handleDelete(piece.id)}
-                                    className="delete-button"
-                                >
-                                    Delete
-                                </button>
+                    {savedPieces.map(piece => {
+                        const pieceId = piece._id || piece.id;
+                        return (
+                            <div key={pieceId} className="music-item">
+                                <div className="music-item-header">
+                                    <h3>{piece.title}</h3>
+                                    <button 
+                                        onClick={() => handleDelete(pieceId)}
+                                        className="delete-button"
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
+                                <p className="timestamp">Created: {new Date(piece.timestamp).toLocaleString()}</p>
+                                {piece.description && (
+                                    <p className="description">{piece.description}</p>
+                                )}
+                                <div id={`sheet-music-${pieceId}`}></div>
                             </div>
-                            <p className="timestamp">Created: {new Date(piece.timestamp).toLocaleString()}</p>
-                            {piece.description && (
-                                <p className="description">{piece.description}</p>
-                            )}
-                            <div id={`sheet-music-${piece.id}`}></div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>
