@@ -346,8 +346,7 @@ function Home() {
     return (
         <div className="home-content">
             <div className="logo-top-left">ChordCraft 🎵</div>
-            <div className="blob blob-1"></div>
-            <div className="blob blob-2"></div>
+
             <div className="hero-text">
                 <div className="sparkle">✦</div>
                 <h1>Your intelligent <br />musical companion</h1>
@@ -371,9 +370,7 @@ function Home() {
                     </button>
                 )}
             </div>
-            <div className="hero-graphic">
-                <div className="sun-glow"></div>
-            </div>
+
             <AuthModal
                 isOpen={isAuthModalOpen}
                 onClose={() => setIsAuthModalOpen(false)}

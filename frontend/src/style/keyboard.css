@@ -6,10 +6,10 @@ body {
     align-items: center;
     font-family: 'Poppins', sans-serif;
     background-image: url('../images/background.png');
-    background-size: cover;
-    background-position: center;
+    background-size: 100% auto;
+    background-position: top center;
     background-repeat: no-repeat;
-    background-attachment: fixed;
+    background-attachment: scroll;
     min-height: 100vh;
     margin: 0;
 }
@@ -384,16 +384,16 @@ nav a:hover {
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     text-align: left;
     max-width: 1400px;
     margin: 0 auto;
     padding: 2rem 5rem;
-    min-height: 100vh;
+    min-height: 85vh;
     position: relative;
     overflow: hidden;
-    background-color: #F0F2FF;
-    /* Clean light background for landing */
+    background-color: transparent;
+    /* Transparent to show gradient background */
 }
 
 .logo-top-left {
@@ -497,8 +497,8 @@ nav a:hover {
 }
 
 .sun-glow {
-    width: 500px;
-    height: 500px;
+    width: 350px;
+    height: 350px;
     background: radial-gradient(circle, rgba(255, 230, 100, 0.5) 0%, rgba(255, 180, 50, 0.2) 40%, transparent 70%);
     border-radius: 50%;
     filter: blur(40px);
