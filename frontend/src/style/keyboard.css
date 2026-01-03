@@ -75,6 +75,16 @@ body {
     flex: 1;
 }
 
+#sheet-music svg {
+    color: #2F3043;
+}
+
+#sheet-music svg path,
+#sheet-music svg text {
+    fill: currentColor !important;
+    stroke: currentColor;
+}
+
 #sheet-music img {
     margin: 0.15rem 0;
 }
@@ -107,8 +117,8 @@ body {
 .save-button {
     padding: 10px 20px;
     background-color: transparent;
-    color: white;
-    border: 2px solid white;
+    color: #2F3043;
+    border: 2px solid #2F3043;
     border-radius: 4px;
     cursor: pointer;
     font-family: 'Poppins', sans-serif;
@@ -118,7 +128,7 @@ body {
 
 .clear-button:hover,
 .save-button:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(47, 48, 67, 0.05);
     transform: scale(1.05);
 }
 
@@ -173,13 +183,13 @@ nav {
 
 nav a {
     text-decoration: none;
-    color: white;
+    color: #2F3043;
     padding: 0.5rem 1rem;
     font-size: 1.25rem;
 }
 
 nav a:hover {
-    color: #E5E5F3;
+    color: #5D4FE5;
 }
 
 .keyboard-content {
@@ -190,8 +200,10 @@ nav a:hover {
 }
 
 .keyboard-content h1 {
+    color: #2F3043;
     margin-top: -1.5rem;
     margin-bottom: 0;
+    font-weight: 700;
 }
 
 /* Add padding to the outer container */
@@ -601,13 +613,17 @@ nav a:hover {
 
 
 .keyboard-content h1 {
+    color: #2F3043;
     margin-top: 2rem;
     margin-bottom: -1rem;
+    font-weight: 700;
 }
 
 .saved-music h1 {
+    color: #2F3043;
     margin-top: 2rem;
     margin-bottom: 1rem;
+    font-weight: 700;
 }
 
 /* Update media queries for responsive layout */
@@ -685,14 +701,14 @@ nav a:hover {
 .signout-button {
     background: none;
     border: none;
-    color: white;
+    color: #2F3043;
     font-size: 1.25rem;
     cursor: pointer;
     padding: 0.5rem 1rem;
 }
 
 .signout-button:hover {
-    color: #E5E5F3;
+    color: #5D4FE5;
 }
 
 /* Auth Modal Styles */
@@ -742,7 +758,7 @@ nav a:hover {
 .nav-button {
     background: none;
     border: none;
-    color: white;
+    color: #2F3043;
     font-weight: 500;
     font-size: 1.25rem;
     cursor: pointer;
@@ -751,7 +767,7 @@ nav a:hover {
 }
 
 .nav-button:hover {
-    color: #E9EBF4;
+    color: #5D4FE5;
 }
 
 @media (max-width: 900px) {
