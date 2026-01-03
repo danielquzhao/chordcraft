@@ -12,14 +12,13 @@
     "backend",
     "frontend"
   ],
-
   "repository": {
     "type": "git",
     "url": "git+https://github.com/danielquzhao/chordcraft.git"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/danielquzhao/chordcraft/issues"

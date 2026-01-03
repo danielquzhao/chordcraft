@@ -82,4 +82,4 @@ npm run dev
 - `VITE_API_URL` - URL of the backend API
 
 ## 📄 License
-This project is licensed under the ISC License.
+This project is licensed under the MIT License.
