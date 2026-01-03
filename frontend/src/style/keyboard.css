@@ -145,10 +145,20 @@ body {
 
 /* Add styles for the home page */
 .home-content {
-    padding: 1rem;
-    max-width: 1200px;
+    max-width: 1600px;
     margin: 0 auto;
-    text-align: center;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+    padding: 0 6rem;
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background-color: transparent;
+    gap: 4rem;
 }
 
 /* Update existing nav styles */
@@ -387,19 +397,7 @@ nav a:hover {
     flex: 1;
 }
 
-.home-content {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    text-align: left;
-    width: 100%;
-    padding: 0 6rem;
-    flex: 1;
-    position: relative;
-    overflow: hidden;
-    background-color: transparent;
-}
+/* Consolidated .home-content above */
 
 .logo-top-left {
     position: absolute;
@@ -511,7 +509,6 @@ nav a:hover {
     animation: floatPiano 8s ease-in-out infinite;
     transform-origin: center;
     position: relative;
-    right: -2rem;
 }
 
 .music-note {
