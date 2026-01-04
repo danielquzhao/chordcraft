@@ -3,7 +3,7 @@ import api from './api';
 export const authService = {
     // Sign up new user
     signUp: async (email, password) => {
-        const response = await api.post('/auth/signup', { email, password });
+        const response = await api.post('auth/signup', { email, password });
         if (response.data.token) {
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -13,7 +13,7 @@ export const authService = {
 
     // Sign in existing user
     signIn: async (email, password) => {
-        const response = await api.post('/auth/signin', { email, password });
+        const response = await api.post('auth/signin', { email, password });
         if (response.data.token) {
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
