@@ -11,10 +11,15 @@ connectDB();
 // Manual CORS Middleware
 app.use((req, res, next) => {
     const origin = req.headers.origin;
-    // Allow any localhost port for development
-    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
-        res.header('Access-Control-Allow-Origin', origin);
+    const allowedOrigin = process.env.ALLOWED_ORIGIN;
+
+    // Allow localhost in development, or the production ALLOWED_ORIGIN
+    if (origin) {
+        if (origin.includes('localhost') || origin.includes('127.0.0.1') || origin === allowedOrigin) {
+            res.header('Access-Control-Allow-Origin', origin);
+        }
     }
+    
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-auth-token');
