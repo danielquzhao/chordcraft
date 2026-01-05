@@ -78,7 +78,7 @@ const Saved = () => {
         <div className="saved-music">
             <h1>Saved Music</h1>
             {savedPieces.length === 0 ? (
-                <p>No saved music pieces yet. Create something on the keyboard!</p>
+                <p className="no-music-text">No saved music pieces yet. Create something on the keyboard!</p>
             ) : (
                 <div className="music-list">
                     {savedPieces.map(piece => {

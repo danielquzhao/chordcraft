@@ -151,6 +151,12 @@ body {
     margin-top: -2rem;
 }
 
+.no-music-text {
+    color: #2F3043;
+    font-size: 1.25rem;
+    opacity: 0.8;
+}
+
 .sheet-title {
     text-align: center;
     color: #2F3043;

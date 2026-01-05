@@ -348,10 +348,10 @@ function Home() {
             <div className="logo-top-left">ChordCraft 🎵</div>
 
             <div className="hero-text">
-                <h1>Your intelligent <br />musical companion</h1>
+                <h1>Your online <br />musical companion</h1>
                 <p className="hero-subtitle">
-                    Transform your piano performances into professional sheet music instantly.
-                    ChordCraft is the real-time assistant for composers and students.
+                    Quickly draft short melodies and turn them into readable sheet music.
+                    ChordCraft is the lightweight assistant for composers and students.
                 </p>
                 {!user ? (
                     <button
