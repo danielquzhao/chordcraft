@@ -1,0 +1,17 @@
+"""arq worker. Run with: arq app.worker.WorkerSettings"""
+
+from typing import Any
+
+from arq.connections import RedisSettings
+
+from app.config import get_settings
+
+
+async def ping(ctx: dict[str, Any]) -> str:
+    # Placeholder job; the LangGraph edit job replaces this in M4.
+    return "pong"
+
+
+class WorkerSettings:
+    functions = [ping]
+    redis_settings = RedisSettings.from_dsn(get_settings().redis_url)
