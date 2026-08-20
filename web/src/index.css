@@ -1,0 +1,27 @@
+:root {
+  /* Paper & ink palette (see docs/PLAN.md, "Design") */
+  --paper: #f6f3ec;
+  --paper-raised: #fffdf8;
+  --paper-sunken: #efebe2;
+  --hairline: #e2ddd1;
+  --ink: #1c1b18;
+  --ink-2: #57534b;
+  --ink-3: #6e6a62;
+  --added: #2350c8;
+  --removed: #b4531c;
+
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, monospace;
+
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+}
