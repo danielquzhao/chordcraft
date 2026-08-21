@@ -50,5 +50,5 @@ health panel should report `postgres: true` and `redis: true`.
 
 ```bash
 cd api && .venv/bin/ruff check . && .venv/bin/pytest -q
-cd web && npm run lint && npm run build
+cd web && npm run lint && npm test && npm run build
 ```
