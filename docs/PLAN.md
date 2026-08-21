@@ -134,7 +134,7 @@ TypeScript API types are generated from FastAPI's OpenAPI schema.
 | # | Milestone | Done when | Status |
 |---|---|---|---|
 | M0 | Scaffolding | Monorepo, Docker Compose, FastAPI health check, Vite app, CI | Done |
-| M1 | Score core | Model, `apply_ops` (Py + TS) with tests, VexFlow grand staff, keyboard entry, playback | |
+| M1 | Score core | Model, `apply_ops` (Py + TS) with tests, VexFlow grand staff, keyboard entry, playback | Done |
 | M2 | Persistence | Scores + revisions in Postgres, autosave, History panel with restore | |
 | M3 | Agent (sync) | LangGraph agent + validator working via a CLI/test harness on fixture scores | |
 | M4 | Async + diff | arq jobs, SSE progress, ghost-note diff, accept/reject/undo | |
