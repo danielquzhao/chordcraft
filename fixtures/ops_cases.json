@@ -1,0 +1,1344 @@
+{
+  "base": {
+    "meta": {
+      "title": "Base",
+      "key": "G",
+      "mode": "major",
+      "time": [
+        4,
+        4
+      ],
+      "tempo": 100,
+      "ppq": 480
+    },
+    "measures": [
+      {
+        "n": 1,
+        "chord": "G",
+        "section": null,
+        "notes": [
+          {
+            "id": "a1",
+            "staff": "RH",
+            "voice": 1,
+            "pitch": "B4",
+            "start": 0,
+            "dur": 480,
+            "tie": false
+          },
+          {
+            "id": "a2",
+            "staff": "RH",
+            "voice": 1,
+            "pitch": "D5",
+            "start": 480,
+            "dur": 480,
+            "tie": false
+          },
+          {
+            "id": "a3",
+            "staff": "LH",
+            "voice": 1,
+            "pitch": "G3",
+            "start": 0,
+            "dur": 960,
+            "tie": false
+          }
+        ]
+      },
+      {
+        "n": 2,
+        "chord": "D",
+        "section": null,
+        "notes": [
+          {
+            "id": "b1",
+            "staff": "RH",
+            "voice": 1,
+            "pitch": "A4",
+            "start": 0,
+            "dur": 960,
+            "tie": false
+          },
+          {
+            "id": "b2",
+            "staff": "LH",
+            "voice": 1,
+            "pitch": "D3",
+            "start": 0,
+            "dur": 1920,
+            "tie": false
+          }
+        ]
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "add a note; notes stay sorted",
+      "ops": [
+        {
+          "op": "add_note",
+          "measure": 1,
+          "note": {
+            "id": "x1",
+            "staff": "RH",
+            "voice": 1,
+            "pitch": "F#5",
+            "start": 960,
+            "dur": 480
+          }
+        },
+        {
+          "op": "add_note",
+          "measure": 1,
+          "note": {
+            "id": "x2",
+            "staff": "LH",
+            "voice": 1,
+            "pitch": "B2",
+            "start": 960,
+            "dur": 960
+          }
+        }
+      ],
+      "score": {
+        "meta": {
+          "title": "Base",
+          "key": "G",
+          "mode": "major",
+          "time": [
+            4,
+            4
+          ],
+          "tempo": 100,
+          "ppq": 480
+        },
+        "measures": [
+          {
+            "n": 1,
+            "chord": "G",
+            "section": null,
+            "notes": [
+              {
+                "id": "a1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "B4",
+                "start": 0,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a2",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "D5",
+                "start": 480,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "x1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "F#5",
+                "start": 960,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a3",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "G3",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              },
+              {
+                "id": "x2",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "B2",
+                "start": 960,
+                "dur": 960,
+                "tie": false
+              }
+            ]
+          },
+          {
+            "n": 2,
+            "chord": "D",
+            "section": null,
+            "notes": [
+              {
+                "id": "b1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "A4",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              },
+              {
+                "id": "b2",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "D3",
+                "start": 0,
+                "dur": 1920,
+                "tie": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "add a chord tone at the same start sorts by pitch",
+      "ops": [
+        {
+          "op": "add_note",
+          "measure": 1,
+          "note": {
+            "id": "x1",
+            "staff": "RH",
+            "voice": 1,
+            "pitch": "G4",
+            "start": 0,
+            "dur": 480
+          }
+        }
+      ],
+      "score": {
+        "meta": {
+          "title": "Base",
+          "key": "G",
+          "mode": "major",
+          "time": [
+            4,
+            4
+          ],
+          "tempo": 100,
+          "ppq": 480
+        },
+        "measures": [
+          {
+            "n": 1,
+            "chord": "G",
+            "section": null,
+            "notes": [
+              {
+                "id": "x1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "G4",
+                "start": 0,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "B4",
+                "start": 0,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a2",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "D5",
+                "start": 480,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a3",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "G3",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              }
+            ]
+          },
+          {
+            "n": 2,
+            "chord": "D",
+            "section": null,
+            "notes": [
+              {
+                "id": "b1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "A4",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              },
+              {
+                "id": "b2",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "D3",
+                "start": 0,
+                "dur": 1920,
+                "tie": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "add with an existing id fails",
+      "ops": [
+        {
+          "op": "add_note",
+          "measure": 2,
+          "note": {
+            "id": "a1",
+            "staff": "RH",
+            "voice": 1,
+            "pitch": "C5",
+            "start": 960,
+            "dur": 480
+          }
+        }
+      ],
+      "error": {
+        "index": 0,
+        "code": "duplicate_id"
+      }
+    },
+    {
+      "name": "add past the end of the measure fails",
+      "ops": [
+        {
+          "op": "add_note",
+          "measure": 1,
+          "note": {
+            "id": "x1",
+            "staff": "RH",
+            "voice": 1,
+            "pitch": "C5",
+            "start": 1440,
+            "dur": 960
+          }
+        }
+      ],
+      "error": {
+        "index": 0,
+        "code": "out_of_measure"
+      }
+    },
+    {
+      "name": "add outside the piano range fails",
+      "ops": [
+        {
+          "op": "add_note",
+          "measure": 1,
+          "note": {
+            "id": "x1",
+            "staff": "LH",
+            "voice": 1,
+            "pitch": "G0",
+            "start": 960,
+            "dur": 480
+          }
+        }
+      ],
+      "error": {
+        "index": 0,
+        "code": "out_of_range"
+      }
+    },
+    {
+      "name": "add to a missing measure fails",
+      "ops": [
+        {
+          "op": "add_note",
+          "measure": 9,
+          "note": {
+            "id": "x1",
+            "staff": "RH",
+            "voice": 1,
+            "pitch": "C5",
+            "start": 0,
+            "dur": 480
+          }
+        }
+      ],
+      "error": {
+        "index": 0,
+        "code": "measure_not_found"
+      }
+    },
+    {
+      "name": "remove a note",
+      "ops": [
+        {
+          "op": "remove_note",
+          "id": "a2"
+        }
+      ],
+      "score": {
+        "meta": {
+          "title": "Base",
+          "key": "G",
+          "mode": "major",
+          "time": [
+            4,
+            4
+          ],
+          "tempo": 100,
+          "ppq": 480
+        },
+        "measures": [
+          {
+            "n": 1,
+            "chord": "G",
+            "section": null,
+            "notes": [
+              {
+                "id": "a1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "B4",
+                "start": 0,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a3",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "G3",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              }
+            ]
+          },
+          {
+            "n": 2,
+            "chord": "D",
+            "section": null,
+            "notes": [
+              {
+                "id": "b1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "A4",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              },
+              {
+                "id": "b2",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "D3",
+                "start": 0,
+                "dur": 1920,
+                "tie": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "remove a missing note fails",
+      "ops": [
+        {
+          "op": "remove_note",
+          "id": "zz"
+        }
+      ],
+      "error": {
+        "index": 0,
+        "code": "note_not_found"
+      }
+    },
+    {
+      "name": "update pitch and duration",
+      "ops": [
+        {
+          "op": "update_note",
+          "id": "a1",
+          "set": {
+            "pitch": "C5",
+            "dur": 240
+          }
+        }
+      ],
+      "score": {
+        "meta": {
+          "title": "Base",
+          "key": "G",
+          "mode": "major",
+          "time": [
+            4,
+            4
+          ],
+          "tempo": 100,
+          "ppq": 480
+        },
+        "measures": [
+          {
+            "n": 1,
+            "chord": "G",
+            "section": null,
+            "notes": [
+              {
+                "id": "a1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "C5",
+                "start": 0,
+                "dur": 240,
+                "tie": false
+              },
+              {
+                "id": "a2",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "D5",
+                "start": 480,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a3",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "G3",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              }
+            ]
+          },
+          {
+            "n": 2,
+            "chord": "D",
+            "section": null,
+            "notes": [
+              {
+                "id": "b1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "A4",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              },
+              {
+                "id": "b2",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "D3",
+                "start": 0,
+                "dur": 1920,
+                "tie": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "update can move a note to another measure",
+      "ops": [
+        {
+          "op": "update_note",
+          "id": "a2",
+          "set": {
+            "measure": 2,
+            "start": 960
+          }
+        }
+      ],
+      "score": {
+        "meta": {
+          "title": "Base",
+          "key": "G",
+          "mode": "major",
+          "time": [
+            4,
+            4
+          ],
+          "tempo": 100,
+          "ppq": 480
+        },
+        "measures": [
+          {
+            "n": 1,
+            "chord": "G",
+            "section": null,
+            "notes": [
+              {
+                "id": "a1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "B4",
+                "start": 0,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a3",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "G3",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              }
+            ]
+          },
+          {
+            "n": 2,
+            "chord": "D",
+            "section": null,
+            "notes": [
+              {
+                "id": "b1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "A4",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              },
+              {
+                "id": "a2",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "D5",
+                "start": 960,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "b2",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "D3",
+                "start": 0,
+                "dur": 1920,
+                "tie": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "update that overflows the measure fails",
+      "ops": [
+        {
+          "op": "update_note",
+          "id": "a2",
+          "set": {
+            "dur": 1920
+          }
+        }
+      ],
+      "error": {
+        "index": 0,
+        "code": "out_of_measure"
+      }
+    },
+    {
+      "name": "set and clear chords",
+      "ops": [
+        {
+          "op": "set_chord",
+          "measure": 1,
+          "chord": "Gmaj7"
+        },
+        {
+          "op": "set_chord",
+          "measure": 2,
+          "chord": null
+        }
+      ],
+      "score": {
+        "meta": {
+          "title": "Base",
+          "key": "G",
+          "mode": "major",
+          "time": [
+            4,
+            4
+          ],
+          "tempo": 100,
+          "ppq": 480
+        },
+        "measures": [
+          {
+            "n": 1,
+            "chord": "Gmaj7",
+            "section": null,
+            "notes": [
+              {
+                "id": "a1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "B4",
+                "start": 0,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a2",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "D5",
+                "start": 480,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a3",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "G3",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              }
+            ]
+          },
+          {
+            "n": 2,
+            "chord": null,
+            "section": null,
+            "notes": [
+              {
+                "id": "b1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "A4",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              },
+              {
+                "id": "b2",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "D3",
+                "start": 0,
+                "dur": 1920,
+                "tie": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "set a section",
+      "ops": [
+        {
+          "op": "set_section",
+          "measure": 2,
+          "section": "Chorus"
+        }
+      ],
+      "score": {
+        "meta": {
+          "title": "Base",
+          "key": "G",
+          "mode": "major",
+          "time": [
+            4,
+            4
+          ],
+          "tempo": 100,
+          "ppq": 480
+        },
+        "measures": [
+          {
+            "n": 1,
+            "chord": "G",
+            "section": null,
+            "notes": [
+              {
+                "id": "a1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "B4",
+                "start": 0,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a2",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "D5",
+                "start": 480,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a3",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "G3",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              }
+            ]
+          },
+          {
+            "n": 2,
+            "chord": "D",
+            "section": "Chorus",
+            "notes": [
+              {
+                "id": "b1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "A4",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              },
+              {
+                "id": "b2",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "D3",
+                "start": 0,
+                "dur": 1920,
+                "tie": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "insert measures renumbers and keeps notes with their measure",
+      "ops": [
+        {
+          "op": "insert_measures",
+          "at": 2,
+          "count": 2
+        }
+      ],
+      "score": {
+        "meta": {
+          "title": "Base",
+          "key": "G",
+          "mode": "major",
+          "time": [
+            4,
+            4
+          ],
+          "tempo": 100,
+          "ppq": 480
+        },
+        "measures": [
+          {
+            "n": 1,
+            "chord": "G",
+            "section": null,
+            "notes": [
+              {
+                "id": "a1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "B4",
+                "start": 0,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a2",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "D5",
+                "start": 480,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a3",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "G3",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              }
+            ]
+          },
+          {
+            "n": 2,
+            "chord": null,
+            "section": null,
+            "notes": []
+          },
+          {
+            "n": 3,
+            "chord": null,
+            "section": null,
+            "notes": []
+          },
+          {
+            "n": 4,
+            "chord": "D",
+            "section": null,
+            "notes": [
+              {
+                "id": "b1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "A4",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              },
+              {
+                "id": "b2",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "D3",
+                "start": 0,
+                "dur": 1920,
+                "tie": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "insert at the end appends",
+      "ops": [
+        {
+          "op": "insert_measures",
+          "at": 3
+        }
+      ],
+      "score": {
+        "meta": {
+          "title": "Base",
+          "key": "G",
+          "mode": "major",
+          "time": [
+            4,
+            4
+          ],
+          "tempo": 100,
+          "ppq": 480
+        },
+        "measures": [
+          {
+            "n": 1,
+            "chord": "G",
+            "section": null,
+            "notes": [
+              {
+                "id": "a1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "B4",
+                "start": 0,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a2",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "D5",
+                "start": 480,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a3",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "G3",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              }
+            ]
+          },
+          {
+            "n": 2,
+            "chord": "D",
+            "section": null,
+            "notes": [
+              {
+                "id": "b1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "A4",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              },
+              {
+                "id": "b2",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "D3",
+                "start": 0,
+                "dur": 1920,
+                "tie": false
+              }
+            ]
+          },
+          {
+            "n": 3,
+            "chord": null,
+            "section": null,
+            "notes": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "insert past the end fails",
+      "ops": [
+        {
+          "op": "insert_measures",
+          "at": 4
+        }
+      ],
+      "error": {
+        "index": 0,
+        "code": "measure_not_found"
+      }
+    },
+    {
+      "name": "insert then write into the new measure",
+      "ops": [
+        {
+          "op": "insert_measures",
+          "at": 3
+        },
+        {
+          "op": "add_note",
+          "measure": 3,
+          "note": {
+            "id": "x1",
+            "staff": "RH",
+            "voice": 1,
+            "pitch": "G4",
+            "start": 0,
+            "dur": 1920
+          }
+        }
+      ],
+      "score": {
+        "meta": {
+          "title": "Base",
+          "key": "G",
+          "mode": "major",
+          "time": [
+            4,
+            4
+          ],
+          "tempo": 100,
+          "ppq": 480
+        },
+        "measures": [
+          {
+            "n": 1,
+            "chord": "G",
+            "section": null,
+            "notes": [
+              {
+                "id": "a1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "B4",
+                "start": 0,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a2",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "D5",
+                "start": 480,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a3",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "G3",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              }
+            ]
+          },
+          {
+            "n": 2,
+            "chord": "D",
+            "section": null,
+            "notes": [
+              {
+                "id": "b1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "A4",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              },
+              {
+                "id": "b2",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "D3",
+                "start": 0,
+                "dur": 1920,
+                "tie": false
+              }
+            ]
+          },
+          {
+            "n": 3,
+            "chord": null,
+            "section": null,
+            "notes": [
+              {
+                "id": "x1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "G4",
+                "start": 0,
+                "dur": 1920,
+                "tie": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "delete a measure",
+      "ops": [
+        {
+          "op": "delete_measures",
+          "at": 1
+        }
+      ],
+      "score": {
+        "meta": {
+          "title": "Base",
+          "key": "G",
+          "mode": "major",
+          "time": [
+            4,
+            4
+          ],
+          "tempo": 100,
+          "ppq": 480
+        },
+        "measures": [
+          {
+            "n": 1,
+            "chord": "D",
+            "section": null,
+            "notes": [
+              {
+                "id": "b1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "A4",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              },
+              {
+                "id": "b2",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "D3",
+                "start": 0,
+                "dur": 1920,
+                "tie": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "deleting every measure fails",
+      "ops": [
+        {
+          "op": "delete_measures",
+          "at": 1,
+          "count": 2
+        }
+      ],
+      "error": {
+        "index": 0,
+        "code": "last_measure"
+      }
+    },
+    {
+      "name": "set tempo and key",
+      "ops": [
+        {
+          "op": "set_meta",
+          "set": {
+            "tempo": 72,
+            "key": "E",
+            "mode": "minor",
+            "title": "Renamed"
+          }
+        }
+      ],
+      "score": {
+        "meta": {
+          "title": "Renamed",
+          "key": "E",
+          "mode": "minor",
+          "time": [
+            4,
+            4
+          ],
+          "tempo": 72,
+          "ppq": 480
+        },
+        "measures": [
+          {
+            "n": 1,
+            "chord": "G",
+            "section": null,
+            "notes": [
+              {
+                "id": "a1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "B4",
+                "start": 0,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a2",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "D5",
+                "start": 480,
+                "dur": 480,
+                "tie": false
+              },
+              {
+                "id": "a3",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "G3",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              }
+            ]
+          },
+          {
+            "n": 2,
+            "chord": "D",
+            "section": null,
+            "notes": [
+              {
+                "id": "b1",
+                "staff": "RH",
+                "voice": 1,
+                "pitch": "A4",
+                "start": 0,
+                "dur": 960,
+                "tie": false
+              },
+              {
+                "id": "b2",
+                "staff": "LH",
+                "voice": 1,
+                "pitch": "D3",
+                "start": 0,
+                "dur": 1920,
+                "tie": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "shrinking the time signature under existing notes fails",
+      "ops": [
+        {
+          "op": "set_meta",
+          "set": {
+            "time": [
+              3,
+              4
+            ]
+          }
+        }
+      ],
+      "error": {
+        "index": 0,
+        "code": "notes_overflow"
+      }
+    },
+    {
+      "name": "an unknown key fails",
+      "ops": [
+        {
+          "op": "set_meta",
+          "set": {
+            "key": "H"
+          }
+        }
+      ],
+      "error": {
+        "index": 0,
+        "code": "invalid_meta"
+      }
+    },
+    {
+      "name": "ops are atomic: a later failure reports its index",
+      "ops": [
+        {
+          "op": "set_chord",
+          "measure": 1,
+          "chord": "Em"
+        },
+        {
+          "op": "remove_note",
+          "id": "missing"
+        }
+      ],
+      "error": {
+        "index": 1,
+        "code": "note_not_found"
+      }
+    }
+  ]
+}
