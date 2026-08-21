@@ -1,0 +1,368 @@
+{
+  "meta": {
+    "title": "Autumn Sketch",
+    "key": "D",
+    "mode": "major",
+    "time": [
+      4,
+      4
+    ],
+    "tempo": 92,
+    "ppq": 480
+  },
+  "measures": [
+    {
+      "n": 1,
+      "chord": "D",
+      "section": "Intro",
+      "notes": [
+        {
+          "id": "n_m1rh1",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "F#4",
+          "start": 0,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m1rh2",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "A4",
+          "start": 480,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m1rh3",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "D5",
+          "start": 960,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m1rh4",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "A4",
+          "start": 1440,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m1lh1",
+          "staff": "LH",
+          "voice": 1,
+          "pitch": "D3",
+          "start": 0,
+          "dur": 1920,
+          "tie": false
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "chord": "Bm",
+      "section": null,
+      "notes": [
+        {
+          "id": "n_m2rh1",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "B4",
+          "start": 0,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m2rh2",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "C#5",
+          "start": 480,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m2rh3",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "D5",
+          "start": 960,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m2rh4",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "B4",
+          "start": 1440,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m2lh1",
+          "staff": "LH",
+          "voice": 1,
+          "pitch": "B2",
+          "start": 0,
+          "dur": 1920,
+          "tie": false
+        }
+      ]
+    },
+    {
+      "n": 3,
+      "chord": "G",
+      "section": null,
+      "notes": [
+        {
+          "id": "n_m3rh1",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "G4",
+          "start": 0,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m3rh2",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "B4",
+          "start": 480,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m3rh3",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "D5",
+          "start": 960,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m3rh4",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "B4",
+          "start": 1440,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m3lh1",
+          "staff": "LH",
+          "voice": 1,
+          "pitch": "G2",
+          "start": 0,
+          "dur": 1920,
+          "tie": false
+        }
+      ]
+    },
+    {
+      "n": 4,
+      "chord": "A",
+      "section": null,
+      "notes": [
+        {
+          "id": "n_m4rh1",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "A4",
+          "start": 0,
+          "dur": 960,
+          "tie": false
+        },
+        {
+          "id": "n_m4rh2",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "C#5",
+          "start": 960,
+          "dur": 960,
+          "tie": false
+        },
+        {
+          "id": "n_m4lh1",
+          "staff": "LH",
+          "voice": 1,
+          "pitch": "A2",
+          "start": 0,
+          "dur": 1920,
+          "tie": false
+        }
+      ]
+    },
+    {
+      "n": 5,
+      "chord": "Dmaj7",
+      "section": "Verse",
+      "notes": [
+        {
+          "id": "n_m5rh1",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "A4",
+          "start": 0,
+          "dur": 960,
+          "tie": false
+        },
+        {
+          "id": "n_m5rh2",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "F#4",
+          "start": 960,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m5rh3",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "A4",
+          "start": 1440,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m5lh1",
+          "staff": "LH",
+          "voice": 1,
+          "pitch": "D3",
+          "start": 0,
+          "dur": 1920,
+          "tie": false
+        }
+      ]
+    },
+    {
+      "n": 6,
+      "chord": "Bm7",
+      "section": null,
+      "notes": [
+        {
+          "id": "n_m6rh1",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "D5",
+          "start": 0,
+          "dur": 960,
+          "tie": false
+        },
+        {
+          "id": "n_m6rh2",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "C#5",
+          "start": 960,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m6rh3",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "B4",
+          "start": 1440,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m6lh1",
+          "staff": "LH",
+          "voice": 1,
+          "pitch": "B2",
+          "start": 0,
+          "dur": 1920,
+          "tie": false
+        }
+      ]
+    },
+    {
+      "n": 7,
+      "chord": "Em7",
+      "section": null,
+      "notes": [
+        {
+          "id": "n_m7rh1",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "G4",
+          "start": 0,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m7rh2",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "B4",
+          "start": 480,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m7rh3",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "E5",
+          "start": 960,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m7rh4",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "D5",
+          "start": 1440,
+          "dur": 480,
+          "tie": false
+        },
+        {
+          "id": "n_m7lh1",
+          "staff": "LH",
+          "voice": 1,
+          "pitch": "E3",
+          "start": 0,
+          "dur": 1920,
+          "tie": false
+        }
+      ]
+    },
+    {
+      "n": 8,
+      "chord": "A7",
+      "section": null,
+      "notes": [
+        {
+          "id": "n_m8rh1",
+          "staff": "RH",
+          "voice": 1,
+          "pitch": "C#5",
+          "start": 0,
+          "dur": 1920,
+          "tie": false
+        },
+        {
+          "id": "n_m8lh1",
+          "staff": "LH",
+          "voice": 1,
+          "pitch": "A2",
+          "start": 0,
+          "dur": 1920,
+          "tie": false
+        }
+      ]
+    }
+  ]
+}
