@@ -1,0 +1,237 @@
+.editor {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 26px;
+  letter-spacing: -0.01em;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+}
+
+.chip {
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 9px;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  background: var(--paper-raised);
+  color: var(--ink-2);
+}
+
+.mono,
+.kbd {
+  font-family: var(--font-mono);
+}
+
+.kbd {
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 5px;
+  border: 1px solid #dad4c6;
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  color: var(--ink-2);
+  background: var(--paper-raised);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--added);
+  outline-offset: 2px;
+}
+
+.play {
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--ink);
+  border-radius: 7px;
+  background: var(--ink);
+  color: var(--paper-raised);
+  font-weight: 500;
+}
+
+.play .hint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.group {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: #eae5da;
+}
+
+.tool {
+  height: 36px;
+  min-width: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-2);
+}
+
+.tool .kbd {
+  padding: 2px 4px;
+  font-size: 10px;
+}
+
+.tool:hover:not(:disabled) {
+  background: #e2dccf;
+}
+
+.tool[aria-pressed='true'] {
+  background: var(--paper-raised);
+  color: var(--ink);
+  box-shadow: 0 0 0 1px var(--hairline);
+}
+
+.tool:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.tool .glyph {
+  font-family: Bravura, serif;
+  font-size: 22px;
+  line-height: 1;
+  /* SMuFL glyphs sit on the baseline; lift them into the button's centre. */
+  transform: translateY(5px);
+}
+
+.canvas {
+  flex: 1;
+  padding: 28px 20px 40px;
+}
+
+.paper {
+  max-width: 1100px;
+  margin: 0 auto;
+  background: var(--paper-raised);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  box-shadow:
+    0 1px 0 rgba(28, 27, 24, 0.03),
+    0 12px 32px rgba(28, 27, 24, 0.05);
+  padding: 32px 40px 24px;
+}
+
+.score {
+  position: relative;
+}
+
+.score-host {
+  cursor: text;
+}
+
+.score-host svg {
+  display: block;
+  overflow: visible;
+}
+
+.score-cursor {
+  position: absolute;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--added);
+  box-shadow: 0 0 0 3px rgba(35, 80, 200, 0.12);
+  pointer-events: none;
+}
+
+.score-host [data-note-id].is-selected,
+.score-host [data-note-id].is-selected * {
+  fill: var(--added);
+  stroke: var(--added);
+}
+
+.score-host [data-note-id].is-playing,
+.score-host [data-note-id].is-playing * {
+  fill: var(--removed);
+  stroke: var(--removed);
+}
+
+.score-loading,
+.error {
+  color: var(--ink-2);
+}
+
+.error {
+  max-width: 1100px;
+  margin: 12px auto 0;
+  color: var(--removed);
+}
+
+.statusbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 8px 20px;
+  border-top: 1px solid var(--hairline);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.statusbar strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.shortcuts {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+@media (max-width: 640px) {
+  .paper {
+    padding: 20px 16px;
+  }
+  .canvas {
+    padding: 16px;
+  }
+}
