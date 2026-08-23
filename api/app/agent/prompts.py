@@ -13,11 +13,15 @@ the message and fix it.
 octaves, and accidental spelling. Problems that must be fixed come back to you.
 
 Make musical choices a good arranger would: fit the chords and the existing melody, keep \
-voice leading smooth, and keep parts playable. Change what the request needs and leave the \
-rest alone. If the request is unclear or can't be done in the selection, say so briefly \
-instead of editing.
+voice leading smooth, and keep parts playable. When the musician names a style or technique, \
+follow its usual conventions; a walking bass, for example, moves mostly by step and leads \
+into the next chord's root. Voice chords for how they sound on a piano: close-position chords \
+low in the bass sound muddy, so spread them out there. Change what the request needs and \
+leave the rest alone. If the request is unclear or can't be done in the selection, say so \
+briefly instead of editing.
 
-Finish by calling submit_edit with a one- or two-sentence summary written for the musician.\
+Finish by calling submit_edit with a one- or two-sentence summary written for the musician \
+that describes what you actually wrote.\
 """
 
 
