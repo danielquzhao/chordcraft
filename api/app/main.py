@@ -7,6 +7,7 @@ from sqlalchemy import text
 from app.config import get_settings
 from app.db import engine
 from app.redis import redis
+from app.scores.router import router as scores_router
 
 
 @asynccontextmanager
@@ -23,6 +24,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(scores_router)
 
 
 async def _postgres_ok() -> bool:
