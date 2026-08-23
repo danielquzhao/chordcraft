@@ -4,8 +4,45 @@ import { play, stop } from '../playback/player'
 import { markNotes } from '../render/engrave'
 import { ScoreView } from '../render/ScoreView'
 import type { Staff } from '../score/types'
-import { DURATIONS, useEditor } from './store'
+import { Sidebar } from './Sidebar'
+import { DURATIONS, saveStatus, useEditor, type SaveStatus } from './store'
 import './editor.css'
+
+const STATUS_TEXT: Record<SaveStatus, string> = {
+  saved: 'Saved',
+  saving: 'Saving…',
+  unsaved: 'Unsaved changes',
+  offline: "Can't reach the server, retrying…",
+}
+
+/** The score title, edited in place; renaming is a set_meta op like any other edit. */
+function TitleField({ title, readOnly }: { title: string; readOnly: boolean }) {
+  const [draft, setDraft] = useState<string | null>(null)
+  const apply = useEditor((s) => s.apply)
+  const commit = () => {
+    const next = draft?.trim()
+    if (next && next !== title) apply([{ op: 'set_meta', set: { title: next.slice(0, 200) } }])
+    setDraft(null)
+  }
+  return (
+    <input
+      className="title"
+      aria-label="Score title"
+      value={draft ?? title}
+      readOnly={readOnly}
+      maxLength={200}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur()
+        if (e.key === 'Escape') {
+          setDraft(null)
+          requestAnimationFrame(() => (e.target as HTMLInputElement).blur())
+        }
+      }}
+    />
+  )
+}
 
 // SMuFL code points in the Bravura font VexFlow already loads.
 const NOTE_GLYPH: Record<number, string> = {
@@ -17,14 +54,19 @@ const HAND: Record<Staff, string> = { RH: 'Right hand', LH: 'Left hand' }
 type PlayState = 'idle' | 'loading' | 'playing'
 
 export function Editor() {
-  const score = useEditor((s) => s.score)
+  const current = useEditor((s) => s.score)
+  const preview = useEditor((s) => s.preview)
+  const status = useEditor(saveStatus)
+  const notice = useEditor((s) => s.notice)
+  const loadError = useEditor((s) => s.loadError)
   const cursor = useEditor((s) => s.cursor)
   const selected = useEditor((s) => s.selected)
   const duration = useEditor((s) => s.duration)
   const dotted = useEditor((s) => s.dotted)
   const canUndo = useEditor((s) => s.past.length > 0)
   const canRedo = useEditor((s) => s.future.length > 0)
-  const { undo, redo, setDuration, toggleDot, moveTo } = useEditor.getState()
+  const { undo, redo, setDuration, toggleDot, moveTo, restore, showRevision, dismissNotice } =
+    useEditor.getState()
 
   const hostRef = useRef<HTMLDivElement>(null)
   const [playState, setPlayState] = useState<PlayState>('idle')
@@ -39,10 +81,12 @@ export function Editor() {
       setPlayState('idle')
       return
     }
-    const { score: current, cursor: at } = useEditor.getState()
+    const state = useEditor.getState()
+    const shown = state.preview?.score ?? state.score
+    if (!shown) return
     setPlayState('loading')
     setAudioError(null)
-    play(current, at.measure, {
+    play(shown, state.preview ? 1 : state.cursor.measure, {
       onSounding: showSounding,
       onEnd: () => setPlayState('idle'),
     })
@@ -55,6 +99,28 @@ export function Editor() {
 
   useKeyboard(togglePlay)
 
+  const score = preview?.score ?? current
+  if (!score) {
+    return (
+      <div className="app">
+        <Sidebar />
+        <div className="editor">
+          {loadError ? (
+            <div className="load-error" role="alert">
+              <p>{loadError} Check that the API is running, then try again.</p>
+              <button type="button" className="primary" onClick={() => void useEditor.getState().init()}>
+                Try again
+              </button>
+            </div>
+          ) : (
+            <p className="score-loading" style={{ padding: 24 }}>Loading score…</p>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  const readOnly = preview !== null
   const { meta } = score
   const beatTicks = (meta.ppq * 4) / meta.time[1]
   const beat = Math.round((1 + cursor.tick / beatTicks) * 100) / 100
@@ -63,9 +129,13 @@ export function Editor() {
     : null
 
   return (
+    <div className="app">
+    <Sidebar />
     <div className="editor">
       <header className="topbar">
-        <h1 className="title">{meta.title}</h1>
+        <h1 className="title-wrap">
+          <TitleField key={meta.title} title={meta.title} readOnly={readOnly} />
+        </h1>
         <div className="chips">
           <span className="chip">Piano</span>
           <span className="chip">
@@ -74,6 +144,9 @@ export function Editor() {
           <span className="chip">{meta.time.join('/')}</span>
           <span className="chip mono">♩ = {meta.tempo}</span>
         </div>
+        <span className={`save-status ${status}`} role="status">
+          {STATUS_TEXT[status]}
+        </span>
         <button type="button" className="play" onClick={togglePlay} aria-pressed={playState !== 'idle'}>
           {playState === 'idle' ? (
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -89,6 +162,28 @@ export function Editor() {
         </button>
       </header>
 
+      {notice && (
+        <div className="notice" role="alert">
+          <span>{notice}</span>
+          <button type="button" className="tool text" onClick={dismissNotice}>Dismiss</button>
+        </div>
+      )}
+
+      {preview ? (
+        <div className="preview-bar" role="region" aria-label="Viewing an earlier version">
+          <span>
+            Viewing <strong>v{preview.number}</strong> · {preview.message}
+          </span>
+          <span className="preview-actions">
+            <button type="button" className="tool text" onClick={() => void showRevision(null)}>
+              Back to current <span className="kbd">Esc</span>
+            </button>
+            <button type="button" className="primary" onClick={() => void restore(preview.number)}>
+              Restore this version
+            </button>
+          </span>
+        </div>
+      ) : (
       <div className="toolbar" role="toolbar" aria-label="Note entry">
         <div className="group" role="group" aria-label="Note value">
           {DURATIONS.map((d) => (
@@ -141,10 +236,11 @@ export function Editor() {
           </button>
         </div>
       </div>
+      )}
 
       <main className="canvas">
         <article className="paper">
-          <ScoreView hostRef={hostRef} />
+          <ScoreView score={score} readOnly={readOnly} hostRef={hostRef} />
         </article>
         {audioError && <p className="error" role="alert">{audioError}</p>}
       </main>
@@ -162,6 +258,7 @@ export function Editor() {
           <span><span className="kbd">Tab</span> hand</span>
         </span>
       </footer>
+    </div>
     </div>
   )
 }

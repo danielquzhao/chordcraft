@@ -1,7 +1,163 @@
-.editor {
+.app {
   min-height: 100vh;
   display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+.editor {
+  flex: 999 1 480px;
+  min-width: 0;
+  display: flex;
   flex-direction: column;
+}
+
+/* Sidebar */
+.sidebar {
+  flex: 1 1 232px;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: var(--paper-sunken);
+  border-right: 1px solid var(--hairline);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 6px;
+  font-family: var(--font-serif);
+  font-size: 22px;
+}
+
+.side-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.side-heading {
+  margin: 0;
+  padding: 0 8px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.side-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.side-item {
+  flex: 1;
+  min-width: 0;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-2);
+  text-align: left;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.side-item:hover,
+.history-item:hover {
+  background: #e6e1d5;
+}
+
+.side-item[aria-current='page'] {
+  background: #e3ddcf;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.side-item.new {
+  color: var(--ink-3);
+}
+
+.score-row {
+  display: flex;
+  align-items: center;
+}
+
+.row-action {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-3);
+  opacity: 0;
+}
+
+.score-row:hover .row-action,
+.row-action:focus-visible {
+  opacity: 1;
+}
+
+.row-action:hover {
+  background: #e6e1d5;
+  color: var(--removed);
+}
+
+.history-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+}
+
+.history-item[aria-pressed='true'] {
+  background: #e3ddcf;
+}
+
+.history-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.history-message {
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.history-version {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.history-meta {
+  font-size: 12px;
+  color: var(--ink-3);
 }
 
 .topbar {
@@ -13,12 +169,88 @@
   border-bottom: 1px solid var(--hairline);
 }
 
-.title {
+.title-wrap {
   margin: 0;
-  font-family: var(--font-serif);
   font-weight: 400;
+  min-width: 0;
+}
+
+.title {
+  width: 16ch;
+  max-width: 100%;
+  margin: 0;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-serif);
   font-size: 26px;
   letter-spacing: -0.01em;
+}
+
+.title:hover:not(:read-only) {
+  border-color: var(--hairline);
+}
+
+.title:focus {
+  outline: none;
+  border-color: var(--added);
+  background: var(--paper-raised);
+}
+
+.save-status {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.save-status.offline {
+  color: var(--removed);
+}
+
+.notice,
+.preview-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.notice {
+  background: #fbefe6;
+  color: #7a3a12;
+}
+
+.preview-bar {
+  background: #e9eef9;
+  color: var(--ink);
+}
+
+.preview-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.primary {
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--added);
+  border-radius: 7px;
+  background: var(--added);
+  color: #fff;
+  font-weight: 500;
+}
+
+.load-error {
+  padding: 24px;
+  color: var(--ink-2);
+}
+
+.score-host.read-only {
+  cursor: default;
 }
 
 .chips {
@@ -29,6 +261,7 @@
 }
 
 .chip {
+  white-space: nowrap;
   height: 26px;
   display: inline-flex;
   align-items: center;

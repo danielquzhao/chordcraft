@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { useEditor } from '../editor/store'
+import type { Score } from '../score/types'
 import { engrave, markNotes, type Layout } from './engrave'
 import { cursorLine, hitTest } from './geometry'
 
@@ -27,12 +28,14 @@ function useWidth(ref: RefObject<HTMLElement | null>): number {
 }
 
 type Props = {
+  score: Score
+  /** Viewing an old version: no cursor, selection or clicks. */
+  readOnly: boolean
   /** The element VexFlow draws into; the editor also uses it for playback highlights. */
   hostRef: RefObject<HTMLDivElement | null>
 }
 
-export function ScoreView({ hostRef }: Props) {
-  const score = useEditor((s) => s.score)
+export function ScoreView({ score, readOnly, hostRef }: Props) {
   const cursor = useEditor((s) => s.cursor)
   const selected = useEditor((s) => s.selected)
   const moveTo = useEditor((s) => s.moveTo)
@@ -47,13 +50,14 @@ export function ScoreView({ hostRef }: Props) {
   }, [hostRef, score, width, fontReady])
 
   useLayoutEffect(() => {
-    if (hostRef.current) markNotes(hostRef.current, 'is-selected', selected ? [selected] : [])
-  }, [hostRef, layout, selected])
+    const ids = selected && !readOnly ? [selected] : []
+    if (hostRef.current) markNotes(hostRef.current, 'is-selected', ids)
+  }, [hostRef, layout, selected, readOnly])
 
-  const line = layout ? cursorLine(layout, cursor) : null
+  const line = layout && !readOnly ? cursorLine(layout, cursor) : null
 
   function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    if (!layout || !hostRef.current) return
+    if (!layout || !hostRef.current || readOnly) return
     const rect = hostRef.current.getBoundingClientRect()
     const hit = hitTest(layout, e.clientX - rect.left, e.clientY - rect.top)
     if (hit) moveTo({ cursor: hit.cursor, selected: hit.select })
@@ -63,7 +67,7 @@ export function ScoreView({ hostRef }: Props) {
     <div ref={wrapRef} className="score">
       <div
         ref={hostRef}
-        className="score-host"
+        className={readOnly ? 'score-host read-only' : 'score-host'}
         onPointerDown={onPointerDown}
         role="img"
         aria-label={`Score: ${score.meta.title}, ${score.measures.length} measures`}
