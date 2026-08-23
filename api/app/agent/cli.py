@@ -23,8 +23,11 @@ from app.config import get_settings
 from app.score.model import Score
 
 DEFAULT_SCORE = Path(__file__).resolve().parents[3] / "fixtures" / "autumn-sketch.json"
-# Claude Opus 5.5, USD per million tokens: input, output, cache read, cache write (5 min).
-PRICES = {"claude-opus-5-5": (4.00, 20.00, 0.20, 5.00)}
+# USD per million tokens: input, output, cache read, cache write (5 min).
+PRICES = {
+    "claude-opus-5-5": (4.00, 20.00, 0.20, 5.00),
+    "claude-sonnet-5-5": (2.00, 10.00, 0.20, 2.50),
+}
 
 
 def parse_measures(text: str) -> tuple[int, int]:
