@@ -64,7 +64,10 @@ TOOLS: list[dict[str, Any]] = [
                 "id": {"type": "string"},
                 "pitch": {"type": ["string", "null"], "description": PITCH_HELP},
                 "start_beat": {"type": ["number", "null"], "description": BEAT_HELP},
-                "duration": {"type": ["string", "null"], "enum": [*DURATION_NAMES, None]},
+                # Strict schemas reject a nullable enum written as type ["string", "null"].
+                "duration": {
+                    "anyOf": [{"type": "string", "enum": DURATION_NAMES}, {"type": "null"}]
+                },
             }
         ),
     },
