@@ -14,7 +14,7 @@ Design mockups: https://claude.ai/artifact/8fdpAqxGUCAXUCpg8Nm6FL (editor + empt
 | Frontend | React, TypeScript, Vite, Zustand, TanStack Query, VexFlow, Tone.js |
 | API | FastAPI, Pydantic v2, SQLAlchemy 2 (async), Alembic |
 | Jobs | Redis + arq; progress over Redis pub/sub → SSE |
-| Agent | LangGraph + Claude (`langchain-anthropic`) |
+| Agent | LangGraph for the flow; the `anthropic` SDK for model calls (Claude Opus 5.5) |
 | Import/export | music21 (server side) |
 | Auth | Supabase Auth (JWT verified by the API) |
 | Deploy | Vercel (web); Railway or Fly (API, worker, Postgres, Redis) |
@@ -73,22 +73,32 @@ unchanged).
 ## Agent (LangGraph)
 
 ```
-load_context → propose_edits → validate ──fail (≤2)──▶ repair ─┐
-                                   │ pass                       │
-                                   ▼                  ◀─────────┘
-                               summarize → stage_proposal
+context → model ⇄ tools → validate ─pass─▶ proposal
+             ▲                │ fail (≤ 2 repairs)
+             └────────────────┘
 ```
 
-- **load_context**: selection ± 2 measures serialised compactly
-  (`m5 LH: D3/q E3/q F#3/q A3/q | chord Dmaj7`).
-- **propose_edits**: Claude with tools mapping 1:1 to ops. Ops outside the selection are rejected.
-- **validate** (deterministic Python, not the LLM):
-  - each voice in each measure sums to the time signature
-  - piano range and hand span (≤ a 10th per hand)
-  - parallel 5ths/8ves against the melody (warning)
-  - accidental spelling vs key
-- **repair**: feeds failures back; after 2 tries the proposal is staged with warnings.
-- Each node publishes a progress event for the agent panel.
+Code: `api/app/agent/` (`graph.py`, `tools.py`, `validate.py`, `context.py`, `model.py`).
+
+- **context**: the selection ± 2 measures as compact text, one line per hand
+  (`LH: n_m5lh1 D3 @1 whole`), marked editable or read-only.
+- **propose_edits**: Claude with strict tools that map 1:1 to ops (`add_note`, `remove_note`,
+  `update_note`, `set_chord`) plus `submit_edit`. Calls apply to a draft immediately and return
+  precise errors; anything outside the selection is rejected. Rhythm is in beats and note names
+  (`start_beat: 2.5`, `duration: "eighth"`), converted to ticks by the tool.
+- **validate** (deterministic Python, not the LLM), reporting only problems the edit introduced:
+  - rhythm: no overlaps, chord tones share a length (fail)
+  - hand span ≤ a tenth (fail)
+  - comfortable range for each hand (warning)
+  - parallel 5ths/8ves between bass and melody (warning)
+  - accidentals spelled for the key (warning)
+- **repair**: failures go back as the `submit_edit` tool result, at most twice; after that the
+  proposal is returned with the failures shown.
+- Model calls: adaptive thinking (can't be disabled on Opus 5.5), `effort: high`, prompt caching,
+  server-side refusal fallback. Forced `tool_choice` isn't allowed, so the prompt asks for tools
+  and a text-only answer gets one nudge before it's accepted as the reply.
+- Each node emits a step event, which M4 relays to the agent panel.
+- CLI harness: `python -m app.agent.cli` (see README). Tests use a scripted fake model.
 
 ## Async flow
 
@@ -141,7 +151,7 @@ TypeScript API types are generated from FastAPI's OpenAPI schema.
 | M0 | Scaffolding | Monorepo, Docker Compose, FastAPI health check, Vite app, CI | Done |
 | M1 | Score core | Model, `apply_ops` (Py + TS) with tests, VexFlow grand staff, keyboard entry, playback | Done |
 | M2 | Persistence | Scores + revisions in Postgres, autosave, History panel with restore | Done |
-| M3 | Agent (sync) | LangGraph agent + validator working via a CLI/test harness on fixture scores | |
+| M3 | Agent (sync) | LangGraph agent + validator working via a CLI/test harness on fixture scores | Done |
 | M4 | Async + diff | arq jobs, SSE progress, ghost-note diff, accept/reject/undo | |
 | M5 | Product surface | Chat with @-mentions, lead sheet, empty-state flows, MusicXML/MIDI import | |
 | M6 | Polish | Tab autocomplete, Supabase auth, deploy | |
