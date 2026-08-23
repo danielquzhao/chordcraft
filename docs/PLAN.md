@@ -104,16 +104,21 @@ load_context → propose_edits → validate ──fail (≤2)──▶ repair �
 
 | Table | Key columns |
 |---|---|
-| `scores` | id, owner_id, title, head_revision_id, created_at |
-| `revisions` | id, score_id, parent_id, number, author (`user`/`agent`), message, snapshot JSONB, ops JSONB, created_at |
+| `scores` | id, owner_id, title, head (current version number), created_at, updated_at |
+| `revisions` | id, score_id, number, author (`user`/`agent`), kind (`create`/`edit`/`restore`), message, snapshot JSONB, ops JSONB, changes JSONB, created_at |
 | `edit_jobs` | id, score_id, base_revision_id, instruction, selection JSONB, status, error, timings |
 | `proposals` | id, job_id, ops JSONB, validation JSONB, summary, status (`pending`/`accepted`/`rejected`) |
 | `messages` | id, score_id, role, content, job_id |
 
-- Full snapshot per revision (a 32-bar piano score is a few KB): restore is one read; `ops` give
-  cheap "what changed" for History.
-- Manual edits autosave with a debounce and coalesce into one revision per editing burst
-  (~30 s idle), so not every note becomes a revision.
+- Revisions are immutable: every save appends one with a full snapshot (a 32-bar piano score is a
+  few KB), so restore is one read and a saved version number always means the same content. That
+  keeps `base` checks honest for agent proposals in M4. Restoring appends a new revision.
+- The client autosaves ~0.8 s after typing stops, one request at a time, each with the `base`
+  version it was made against (409 if stale). The History panel groups consecutive user edits
+  less than a minute apart into one entry, labelled from the `changes` column
+  ("Edited notes in m. 3–5, changed tempo").
+- Undo is ops-based: applying ops also yields their inverse, so undo/redo are ordinary edits that
+  save like any other.
 
 ## Frontend layout
 
@@ -135,7 +140,7 @@ TypeScript API types are generated from FastAPI's OpenAPI schema.
 |---|---|---|---|
 | M0 | Scaffolding | Monorepo, Docker Compose, FastAPI health check, Vite app, CI | Done |
 | M1 | Score core | Model, `apply_ops` (Py + TS) with tests, VexFlow grand staff, keyboard entry, playback | Done |
-| M2 | Persistence | Scores + revisions in Postgres, autosave, History panel with restore | |
+| M2 | Persistence | Scores + revisions in Postgres, autosave, History panel with restore | Done |
 | M3 | Agent (sync) | LangGraph agent + validator working via a CLI/test harness on fixture scores | |
 | M4 | Async + diff | arq jobs, SSE progress, ghost-note diff, accept/reject/undo | |
 | M5 | Product surface | Chat with @-mentions, lead sheet, empty-state flows, MusicXML/MIDI import | |
