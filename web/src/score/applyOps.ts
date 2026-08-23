@@ -2,7 +2,16 @@
 // Ops are atomic: if any op fails, OpError is thrown and the input score is untouched.
 
 import { isValidPitch, keyFifths, PIANO_HIGH, PIANO_LOW, toMidi } from './pitch'
-import { measureTicks, STAFF_ORDER, type Measure, type Note, type Op, type Score } from './types'
+import {
+  measureTicks,
+  STAFF_ORDER,
+  type Measure,
+  type MetaPatch,
+  type Note,
+  type NotePatch,
+  type Op,
+  type Score,
+} from './types'
 
 const DENOMINATORS = new Set([1, 2, 4, 8, 16])
 const MAX_INSERT = 64
@@ -28,9 +37,19 @@ class Fail extends Error {
 }
 
 export function applyOps(score: Score, ops: Op[]): Score {
+  return applyOpsWithInverse(score, ops).score
+}
+
+/**
+ * Apply ops and also return the ops that undo them. Undo is then an ordinary edit, so it saves
+ * to the server like any other change.
+ */
+export function applyOpsWithInverse(score: Score, ops: Op[]): { score: Score; inverse: Op[] } {
   const result = structuredClone(score)
+  const undo: Op[][] = []
   ops.forEach((op, index) => {
     try {
+      undo.push(inverseOf(result, op))
       apply(result, op)
     } catch (err) {
       if (err instanceof Fail) throw new OpError(index, err.code, err.message)
@@ -41,7 +60,58 @@ export function applyOps(score: Score, ops: Op[]): Score {
     measure.n = i + 1
     measure.notes.sort(compareNotes)
   })
-  return result
+  return { score: result, inverse: undo.reverse().flat() }
+}
+
+/** The ops that reverse `op`, computed against the score just before it is applied. */
+function inverseOf(score: Score, op: Op): Op[] {
+  switch (op.op) {
+    case 'add_note':
+      return [{ op: 'remove_note', id: op.note.id }]
+    case 'remove_note': {
+      const [m, i] = findNote(score, op.id)
+      return [{ op: 'add_note', measure: m + 1, note: { ...score.measures[m].notes[i] } }]
+    }
+    case 'update_note': {
+      const [m, i] = findNote(score, op.id)
+      const old = score.measures[m].notes[i]
+      const set: NotePatch = {}
+      for (const [k, v] of Object.entries(op.set)) {
+        if (v === undefined || v === null) continue
+        Object.assign(set, { [k]: k === 'measure' ? m + 1 : old[k as keyof Note] })
+      }
+      return [{ op: 'update_note', id: op.id, set }]
+    }
+    case 'set_chord':
+      return [{ op: 'set_chord', measure: op.measure, chord: measure(score, op.measure).chord }]
+    case 'set_section':
+      return [
+        { op: 'set_section', measure: op.measure, section: measure(score, op.measure).section },
+      ]
+    case 'insert_measures':
+      return [{ op: 'delete_measures', at: op.at, count: op.count ?? 1 }]
+    case 'delete_measures': {
+      const count = op.count ?? 1
+      const removed = score.measures.slice(op.at - 1, op.at - 1 + count)
+      return [
+        { op: 'insert_measures', at: op.at, count },
+        ...removed.flatMap((m, k): Op[] => [
+          { op: 'set_chord', measure: op.at + k, chord: m.chord },
+          { op: 'set_section', measure: op.at + k, section: m.section },
+          ...m.notes.map((note): Op => ({ op: 'add_note', measure: op.at + k, note: { ...note } })),
+        ]),
+      ]
+    }
+    case 'set_meta': {
+      const set: MetaPatch = {}
+      for (const [k, v] of Object.entries(op.set)) {
+        if (v === undefined || v === null) continue
+        const old = score.meta[k as keyof MetaPatch]
+        Object.assign(set, { [k]: Array.isArray(old) ? [...old] : old })
+      }
+      return [{ op: 'set_meta', set }]
+    }
+  }
 }
 
 export function compareNotes(a: Note, b: Note): number {

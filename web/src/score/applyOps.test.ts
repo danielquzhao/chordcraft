@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import cases from '../../../fixtures/ops_cases.json'
 import sketchJson from '../../../fixtures/autumn-sketch.json'
-import { applyOps, OpError } from './applyOps'
+import { applyOps, applyOpsWithInverse, OpError } from './applyOps'
 import type { Op, Score } from './types'
 
 const base = cases.base as Score
@@ -27,6 +27,32 @@ describe('shared op cases (fixtures/ops_cases.json)', () => {
       expect(base).toEqual(before)
     })
   }
+})
+
+describe('applyOpsWithInverse', () => {
+  for (const c of cases.cases.filter((x) => 'score' in x)) {
+    it(`undoes: ${c.name}`, () => {
+      const { score, inverse } = applyOpsWithInverse(base, c.ops as Op[])
+      expect(applyOps(score, inverse)).toEqual(base)
+    })
+  }
+
+  it('undoes deleting measures full of notes, chords and sections', () => {
+    const ops: Op[] = [
+      { op: 'set_section', measure: 2, section: 'Bridge' },
+      { op: 'delete_measures', at: 2, count: 3 },
+      { op: 'set_meta', set: { tempo: 60, title: 'Shorter' } },
+    ]
+    const { score, inverse } = applyOpsWithInverse(sketch, ops)
+    expect(score.measures).toHaveLength(5)
+    expect(applyOps(score, inverse)).toEqual(sketch)
+  })
+
+  it('undoes a note moved between measures', () => {
+    const ops: Op[] = [{ op: 'update_note', id: 'n_m1rh1', set: { measure: 3, pitch: 'E5', dur: 240 } }]
+    const { score, inverse } = applyOpsWithInverse(sketch, ops)
+    expect(applyOps(score, inverse)).toEqual(sketch)
+  })
 })
 
 describe('applyOps', () => {
