@@ -10,8 +10,12 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     cors_origins: list[str] = ["http://localhost:5173"]
 
-    # Filled in at M3 (agent) and M6 (auth).
+    # Agent (M3). The SDK also reads ANTHROPIC_API_KEY from the environment.
     anthropic_api_key: str = ""
+    agent_model: str = "claude-opus-5-5"
+    agent_effort: str = "high"
+
+    # Auth (M6).
     supabase_url: str = ""
     supabase_jwt_secret: str = ""
 
