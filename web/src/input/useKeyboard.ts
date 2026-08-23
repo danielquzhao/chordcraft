@@ -34,9 +34,19 @@ export function useKeyboard(togglePlay: () => void) {
       // Leave Tab, Space and Enter to a focused button so keyboard navigation still works.
       if (e.target instanceof HTMLButtonElement && ['Tab', ' ', 'Enter'].includes(e.key)) return
       const state = useEditor.getState()
-      const { score, cursor, selected, apply, moveTo } = state
+      const { score, cursor, selected, apply, moveTo, preview } = state
       const mod = e.metaKey || e.ctrlKey
       const key = e.key
+      if (!score) return
+
+      // An old version from History is read-only: only playback and leaving the preview work.
+      if (preview) {
+        if (key === 'Escape') void state.showRevision(null)
+        else if (key === ' ') togglePlay()
+        else return
+        e.preventDefault()
+        return
+      }
 
       const handled = (() => {
         if (mod && key.toLowerCase() === 'z') {
@@ -71,7 +81,7 @@ export function useKeyboard(togglePlay: () => void) {
         if (key === '.') {
           state.toggleDot()
           const after = useEditor.getState()
-          if (selected) apply(setNoteDuration(after.score, selected, entryTicks(after)))
+          if (selected && after.score) apply(setNoteDuration(after.score, selected, entryTicks(after)))
           return true
         }
 

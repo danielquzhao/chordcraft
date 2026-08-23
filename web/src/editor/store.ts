@@ -1,13 +1,21 @@
-// Editor state. Every change to the score goes through apply(), which runs applyOps and records
-// undo history; M2 will also send the same ops to the server.
+// Editor state and the save loop.
+//
+// Every change goes through apply(): it updates the score locally right away, records the ops
+// that undo it, and queues the ops for the server. Queued ops are sent a moment after typing
+// stops, one request at a time, each against the version the server last confirmed. Undo and
+// redo are ordinary edits too, so they save the same way.
 
 import { create } from 'zustand'
 import sketch from '../../../fixtures/autumn-sketch.json'
+import { api, ApiError, type HistoryEntry, type ScoreDetail, type ScoreSummary } from '../api/client'
 import type { Cursor } from '../input/noteEntry'
-import { applyOps } from '../score/applyOps'
+import { applyOpsWithInverse } from '../score/applyOps'
 import type { Op, Score } from '../score/types'
 
+const SAVE_DELAY = 800
+const RETRY_DELAY = 3000
 const HISTORY_LIMIT = 200
+const START: Cursor = { measure: 1, staff: 'RH', tick: 0 }
 
 /** Note values offered by the toolbar and the 3-7 keys, in ticks at ppq 480. */
 export const DURATIONS = [
@@ -18,79 +26,285 @@ export const DURATIONS = [
   { key: '7', ticks: 1920, label: 'Whole' },
 ] as const
 
+type Edit = { ops: Op[]; inverse: Op[] }
 type Next = { cursor?: Cursor; selected?: string | null }
 
+export type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'offline'
+
+export type Preview = { number: number; message: string; score: Score }
+
 type EditorState = {
-  score: Score
-  past: Score[]
-  future: Score[]
+  scores: ScoreSummary[]
+  scoreId: string | null
+  score: Score | null
+  /** The server version the local score is based on, before `pending` ops. */
+  head: number
+  pending: Op[]
+  saving: boolean
+  offline: boolean
+  notice: string | null
+  /** Set when the workspace couldn't be loaded at all (e.g. the API is down). */
+  loadError: string | null
+  past: Edit[]
+  future: Edit[]
+  history: HistoryEntry[]
+  /** An older version being viewed read-only from the History panel. */
+  preview: Preview | null
   cursor: Cursor
   selected: string | null
   /** Base note value for entry, in ticks; `dotted` lengthens it by half. */
   duration: number
   dotted: boolean
+
+  init: () => Promise<void>
+  open: (id: string, options?: { replaceUrl?: boolean }) => Promise<void>
+  createScore: (score?: Score) => Promise<void>
+  deleteScore: (id: string) => Promise<void>
   apply: (ops: Op[], next?: Next) => void
   undo: () => void
   redo: () => void
+  flush: () => Promise<void>
+  showRevision: (number: number | null) => Promise<void>
+  restore: (number: number) => Promise<void>
   moveTo: (next: Next) => void
   setDuration: (ticks: number) => void
   toggleDot: () => void
+  dismissNotice: () => void
 }
 
 export function entryTicks(state: Pick<EditorState, 'duration' | 'dotted'>): number {
   return state.dotted ? state.duration * 1.5 : state.duration
 }
 
+export function saveStatus(state: Pick<EditorState, 'saving' | 'offline' | 'pending'>): SaveStatus {
+  if (state.offline) return 'offline'
+  if (state.saving) return 'saving'
+  return state.pending.length ? 'unsaved' : 'saved'
+}
+
 export function newNoteId(): string {
   return `n_${crypto.randomUUID().replaceAll('-', '').slice(0, 10)}`
 }
 
-export const useEditor = create<EditorState>()((set, get) => ({
-  score: sketch as Score,
-  past: [],
-  future: [],
-  cursor: { measure: 1, staff: 'RH', tick: 0 },
-  selected: null,
-  duration: 480,
-  dotted: false,
+let saveTimer: ReturnType<typeof setTimeout> | undefined
 
-  apply: (ops, next = {}) => {
-    if (!ops.length) return
-    const { score, past } = get()
-    const updated = applyOps(score, ops)
+function scheduleSave(delay = SAVE_DELAY) {
+  clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => void useEditor.getState().flush(), delay)
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/** Send anything queued and wait for it, e.g. before switching scores. */
+async function settle() {
+  clearTimeout(saveTimer)
+  for (let i = 0; i < 50; i++) {
+    const s = useEditor.getState()
+    if (s.offline || (!s.saving && !s.pending.length)) return
+    if (s.saving) await sleep(100)
+    else await s.flush()
+  }
+}
+
+function scoreUrl(id: string) {
+  return `/scores/${id}`
+}
+
+function idFromUrl(): string | null {
+  return /^\/scores\/([0-9a-f-]{36})$/.exec(window.location.pathname)?.[1] ?? null
+}
+
+async function refreshSidebar(id: string) {
+  const [scores, history] = await Promise.all([api.listScores(), api.history(id)])
+  if (useEditor.getState().scoreId === id) useEditor.setState({ scores, history })
+}
+
+export const useEditor = create<EditorState>()((set, get) => {
+  /** Apply ops locally and queue them for the server. */
+  function commit(ops: Op[]): Edit | null {
+    const { score, pending } = get()
+    if (!score || !ops.length) return null
+    const { score: updated, inverse } = applyOpsWithInverse(score, ops)
+    set({ score: updated, pending: [...pending, ...ops] })
+    scheduleSave()
+    return { ops, inverse }
+  }
+
+  function load(detail: ScoreDetail) {
     set({
-      score: updated,
-      past: [...past, score].slice(-HISTORY_LIMIT),
+      scoreId: detail.id,
+      score: detail.score,
+      head: detail.head,
+      pending: [],
+      saving: false,
+      offline: false,
+      past: [],
       future: [],
-      ...next,
+      preview: null,
+      selected: null,
+      cursor: START,
     })
-  },
+  }
 
-  undo: () => {
-    const { past, score, future } = get()
-    const previous = past.at(-1)
-    if (!previous) return
-    set({ score: previous, past: past.slice(0, -1), future: [score, ...future], selected: null })
-    clampCursor()
-  },
+  return {
+    scores: [],
+    scoreId: null,
+    score: null,
+    head: 0,
+    pending: [],
+    saving: false,
+    offline: false,
+    notice: null,
+    loadError: null,
+    past: [],
+    future: [],
+    history: [],
+    preview: null,
+    cursor: START,
+    selected: null,
+    duration: 480,
+    dotted: false,
 
-  redo: () => {
-    const { past, score, future } = get()
-    const next = future[0]
-    if (!next) return
-    set({ score: next, past: [...past, score], future: future.slice(1), selected: null })
-    clampCursor()
-  },
+    init: async () => {
+      set({ loadError: null })
+      try {
+        const scores = await api.listScores()
+        set({ scores })
+        const wanted = idFromUrl()
+        if (wanted && scores.some((s) => s.id === wanted)) return await get().open(wanted)
+        if (scores.length) return await get().open(scores[0].id, { replaceUrl: true })
+        // First run: start with the example score so there's something to play with.
+        return await get().createScore(sketch as Score)
+      } catch {
+        set({ loadError: "Couldn't reach the ChordCraft server." })
+      }
+    },
 
-  moveTo: (next) => set(next),
-  setDuration: (ticks) => set({ duration: ticks, dotted: false }),
-  toggleDot: () => set((s) => ({ dotted: !s.dotted && s.duration > 120 })),
-}))
+    open: async (id, options = {}) => {
+      await settle()
+      const [detail, history, scores] = await Promise.all([
+        api.getScore(id),
+        api.history(id),
+        api.listScores(),
+      ])
+      load(detail)
+      set({ history, scores })
+      const url = scoreUrl(id)
+      if (window.location.pathname !== url) {
+        if (options.replaceUrl) window.history.replaceState(null, '', url)
+        else window.history.pushState(null, '', url)
+      }
+    },
+
+    createScore: async (score) => {
+      const detail = await api.createScore(score)
+      await get().open(detail.id)
+    },
+
+    deleteScore: async (id) => {
+      await api.deleteScore(id)
+      const scores = await api.listScores()
+      set({ scores })
+      if (get().scoreId !== id) return
+      if (scores.length) await get().open(scores[0].id, { replaceUrl: true })
+      else await get().createScore()
+    },
+
+    apply: (ops, next = {}) => {
+      const edit = commit(ops)
+      if (!edit) return
+      set((s) => ({ past: [...s.past, edit].slice(-HISTORY_LIMIT), future: [], ...next }))
+    },
+
+    undo: () => {
+      const edit = get().past.at(-1)
+      if (!edit) return
+      commit(edit.inverse)
+      set((s) => ({ past: s.past.slice(0, -1), future: [edit, ...s.future], selected: null }))
+      clampCursor()
+    },
+
+    redo: () => {
+      const edit = get().future[0]
+      if (!edit) return
+      commit(edit.ops)
+      set((s) => ({ past: [...s.past, edit], future: s.future.slice(1), selected: null }))
+      clampCursor()
+    },
+
+    flush: async () => {
+      const { saving, pending, scoreId, head } = get()
+      if (saving || !pending.length || !scoreId) return
+      clearTimeout(saveTimer)
+      set({ saving: true, pending: [] })
+      try {
+        const saved = await api.saveEdit(scoreId, head, pending)
+        set({ head: saved.head, saving: false, offline: false })
+        void refreshSidebar(scoreId)
+        if (get().pending.length) scheduleSave(0)
+      } catch (err) {
+        if (err instanceof ApiError && (err.status === 409 || err.status === 422)) {
+          // The server's copy has moved on or disagrees: reload it rather than guess. Drop the
+          // queue first so reloading doesn't try to send it against the stale version again.
+          set({ saving: false, pending: [] })
+          await get().open(scoreId, { replaceUrl: true })
+          set({
+            notice:
+              err.status === 409
+                ? 'This score changed somewhere else, so the latest version was loaded.'
+                : 'An edit could not be saved, so the last saved version was loaded.',
+          })
+        } else {
+          set((s) => ({ saving: false, offline: true, pending: [...pending, ...s.pending] }))
+          setTimeout(() => {
+            set({ offline: false })
+            void get().flush()
+          }, RETRY_DELAY)
+        }
+      }
+    },
+
+    showRevision: async (number) => {
+      const { scoreId, head, pending } = get()
+      if (number === null || !scoreId || (number === head && !pending.length)) {
+        set({ preview: null })
+        return
+      }
+      const rev = await api.revision(scoreId, number)
+      set({ preview: { number: rev.number, message: rev.message, score: rev.score } })
+    },
+
+    restore: async (number) => {
+      await settle()
+      const { scoreId, head } = get()
+      if (!scoreId) return
+      load(await api.restore(scoreId, head, number))
+      await refreshSidebar(scoreId)
+    },
+
+    moveTo: (next) => set(next),
+    setDuration: (ticks) => set({ duration: ticks, dotted: false }),
+    toggleDot: () => set((s) => ({ dotted: !s.dotted && s.duration > 120 })),
+    dismissNotice: () => set({ notice: null }),
+  }
+})
 
 /** Undo can remove measures; keep the cursor inside the score. */
 function clampCursor() {
   const { score, cursor } = useEditor.getState()
-  if (cursor.measure > score.measures.length) {
+  if (score && cursor.measure > score.measures.length) {
     useEditor.setState({ cursor: { ...cursor, measure: score.measures.length, tick: 0 } })
   }
 }
+
+// Browser back/forward between scores.
+window.addEventListener('popstate', () => {
+  const id = idFromUrl()
+  if (id && id !== useEditor.getState().scoreId) void useEditor.getState().open(id)
+})
+
+// Don't lose queued edits when the tab closes.
+window.addEventListener('beforeunload', (e) => {
+  const s = useEditor.getState()
+  if (s.pending.length || s.saving) e.preventDefault()
+})
