@@ -44,3 +44,29 @@ class RevisionRow(Base):
     # What the ops touched, for grouping history: {"kinds": [...], "measures": [...]}.
     changes: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class EditJobRow(Base):
+    """One agent edit request: queued → running → ready/failed → accepted/rejected."""
+
+    __tablename__ = "edit_jobs"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    score_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("scores.id", ondelete="CASCADE"), index=True
+    )
+    # The version the agent read; accepting checks the score hasn't moved under it.
+    base: Mapped[int] = mapped_column(Integer)
+    instruction: Mapped[str] = mapped_column(String(2000))
+    selection: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    status: Mapped[str] = mapped_column(String(16), default="queued")
+    model: Mapped[str] = mapped_column(String(64))
+    # The agent's result: ops, summary, checks report, steps, usage and the drafted score.
+    proposal: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    error: Mapped[str | None] = mapped_column(String(500))
+    # The revision created when the proposal was accepted.
+    accepted_revision: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
