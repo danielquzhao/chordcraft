@@ -206,7 +206,7 @@ async def test_refusal_fails_the_run():
     proposal = await run_agent(SKETCH, LH_5_8, "x", FakeModel([turn(stop="refusal")]))
     assert proposal.status == "failed"
     assert proposal.ops == [] and proposal.score == SKETCH
-    assert proposal.error == "Claude declined this request."
+    assert proposal.error == "The model declined this request."
 
 
 async def test_runs_out_of_turns():

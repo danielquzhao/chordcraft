@@ -1,4 +1,8 @@
-"""The model behind the agent, behind a small interface so tests can script it."""
+"""The model behind the agent, behind a small interface so tests can script it.
+
+Providers: Claude (this module) and Gemini (app/agent/gemini.py). make_model picks one
+from the model name.
+"""
 
 from dataclasses import dataclass, field
 from typing import Any, Protocol
@@ -100,3 +104,13 @@ class ClaudeModel:
                 cache_write_tokens=u.cache_creation_input_tokens or 0,
             ),
         )
+
+
+def make_model(name: str | None = None, effort: str | None = None) -> Model:
+    """gemini-* models go to Gemini; everything else to Claude."""
+    name = name or get_settings().agent_model
+    if name.startswith("gemini-"):
+        from app.agent.gemini import GeminiModel  # imported here to avoid a circular import
+
+        return GeminiModel(name, effort)
+    return ClaudeModel(name, effort)

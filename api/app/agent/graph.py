@@ -103,7 +103,7 @@ def build_graph(model: Model, on_event: EventSink | None = None):
             "text": turn.text or state.get("text", ""),
         }
         if turn.stop_reason == "refusal":
-            update |= {"outcome": "failed", "error": "Claude declined this request."}
+            update |= {"outcome": "failed", "error": "The model declined this request."}
         elif turn.stop_reason == "max_tokens":
             update |= {"outcome": "failed", "error": "The response was cut off before finishing."}
         return update
