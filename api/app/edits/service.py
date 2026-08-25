@@ -6,6 +6,7 @@ from collections.abc import Callable
 from typing import Any
 
 from redis.asyncio import Redis
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.agent.context import Selection
@@ -13,7 +14,7 @@ from app.agent.graph import run_agent
 from app.agent.model import Model, make_model
 from app.config import get_settings
 from app.edits import events
-from app.models import EditJobRow, ScoreRow
+from app.models import EditJobRow, MessageRow, ScoreRow
 from app.score.model import Score
 from app.score.ops import AddNote, OpError, OpList, RemoveNote, SetChord, UpdateNote, apply_ops
 from app.scores import service as scores
@@ -40,6 +41,7 @@ async def create_job(
     base: int,
     instruction: str,
     selection: Selection,
+    source: str = "bar",
 ) -> EditJobRow:
     """Raises scores.NotFound, scores.Conflict (stale base) or ValueError (bad selection)."""
     score_row = await scores.get_score(session, score_id)
@@ -54,6 +56,7 @@ async def create_job(
         instruction=instruction,
         selection=selection.model_dump(),
         status="queued",
+        source=source,
         model=get_settings().agent_model,
     )
     session.add(job)
@@ -86,6 +89,8 @@ async def run_job(
         )
         selection = Selection.model_validate(job.selection)
         instruction = job.instruction
+        chat = job.source == "chat"
+        history = await chat_history(session, job) if chat else []
         job.status = "running"
         await session.commit()
     await events.publish(redis, job_id, {"type": "status", "status": "running"})
@@ -96,7 +101,15 @@ async def run_job(
     proposal: dict[str, Any] | None = None
     error: str | None = None
     try:
-        result = await run_agent(base, selection, instruction, model_factory(), on_event=relay)
+        result = await run_agent(
+            base,
+            selection,
+            instruction,
+            model_factory(),
+            on_event=relay,
+            history=history,
+            conversational=chat,
+        )
         status = result.status
         error = result.error
         proposal = result.model_dump(mode="json")
@@ -110,10 +123,33 @@ async def run_job(
             job.status = status
             job.proposal = proposal
             job.error = error
+            if chat:
+                reply = (proposal or {}).get("summary") or error or "Done."
+                session.add(
+                    MessageRow(score_id=job.score_id, role="assistant", content=reply, job_id=jid)
+                )
         final = job.status
         await session.commit()
     await events.publish(redis, job_id, {"type": "done", "status": final, "error": error})
     return final
+
+
+HISTORY_MESSAGES = 8
+
+
+async def chat_history(session: AsyncSession, job: EditJobRow) -> list[tuple[str, str]]:
+    """The chat turns before this job's request, oldest first."""
+    rows = await session.scalars(
+        select(MessageRow)
+        .where(
+            MessageRow.score_id == job.score_id,
+            MessageRow.created_at < job.created_at,
+            or_(MessageRow.job_id.is_(None), MessageRow.job_id != job.id),
+        )
+        .order_by(MessageRow.created_at.desc())
+        .limit(HISTORY_MESSAGES)
+    )
+    return [(m.role, m.content) for m in reversed(rows.all())]
 
 
 def _touched(score: Score, ops: list[Any]) -> tuple[set[tuple[int, str]], set[int]]:
@@ -159,6 +195,9 @@ async def accept(session: AsyncSession, job_id: uuid.UUID) -> tuple[int, Score, 
     job = await get_job(session, job_id, lock=True)
     if job.status != "ready" or not job.proposal:
         raise InvalidState(job.status)
+    if not job.proposal["ops"]:
+        # An answer to a question, or a request the agent declined: nothing to apply.
+        raise InvalidState("empty")
     raw_ops = job.proposal["ops"]
     ops = OpList.validate_python(raw_ops)
     row: ScoreRow = await scores.get_score(session, job.score_id, lock=True)

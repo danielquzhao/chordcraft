@@ -20,7 +20,7 @@ router = APIRouter(tags=["edits"])
 Session = Annotated[AsyncSession, Depends(get_session)]
 
 
-def _job(row: EditJobRow) -> EditJob:
+def job_view(row: EditJobRow) -> EditJob:
     return EditJob.model_validate(row, from_attributes=True)
 
 
@@ -51,13 +51,13 @@ async def create_edit(
             detail={"code": "bad_selection", "message": str(err)},
         ) from None
     await queue.enqueue_job("run_edit_job", str(row.id), _job_id=str(row.id))
-    return _job(row)
+    return job_view(row)
 
 
 @router.get("/edits/{job_id}")
 async def get_edit(job_id: uuid.UUID, session: Session) -> EditJob:
     try:
-        return _job(await service.get_job(session, job_id))
+        return job_view(await service.get_job(session, job_id))
     except service.NotFound:
         raise _not_found() from None
 

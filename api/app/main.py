@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
+from app.chat.router import router as chat_router
 from app.config import get_settings
 from app.db import engine
 from app.edits.router import router as edits_router
@@ -29,6 +30,7 @@ app.add_middleware(
 )
 app.include_router(scores_router)
 app.include_router(edits_router)
+app.include_router(chat_router)
 
 
 async def _postgres_ok() -> bool:
