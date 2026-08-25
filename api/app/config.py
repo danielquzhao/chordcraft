@@ -12,7 +12,9 @@ class Settings(BaseSettings):
 
     # Agent (M3). The SDK also reads ANTHROPIC_API_KEY from the environment.
     anthropic_api_key: str = ""
-    agent_model: str = "claude-opus-5-5"
+    agent_model: str = "claude-opus-5-5"  # or a gemini-* model id
+    # Gemini (optional). The google-genai SDK also reads GEMINI_API_KEY / GOOGLE_API_KEY.
+    gemini_api_key: str = ""
     agent_effort: str = "high"
 
     # Auth (M6).

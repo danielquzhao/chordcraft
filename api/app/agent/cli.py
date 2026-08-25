@@ -15,10 +15,11 @@ from pathlib import Path
 from typing import Any
 
 import anthropic
+from google.genai import errors as gemini_errors
 
 from app.agent.context import Selection, render_measure
 from app.agent.graph import Proposal, run_agent
-from app.agent.model import ClaudeModel
+from app.agent.model import make_model
 from app.config import get_settings
 from app.score.model import Score
 
@@ -27,6 +28,9 @@ DEFAULT_SCORE = Path(__file__).resolve().parents[3] / "fixtures" / "autumn-sketc
 PRICES = {
     "claude-opus-5-5": (4.00, 20.00, 0.20, 5.00),
     "claude-sonnet-5-5": (2.00, 10.00, 0.20, 2.50),
+    # Introductory rates through 2026-12-31; $1.50 / $7.50 / $0.15 from 2027. Gemini's
+    # implicit caching doesn't bill cache writes.
+    "gemini-3.8-flash": (0.75, 3.75, 0.075, 0.0),
 }
 
 
@@ -84,15 +88,27 @@ async def main() -> int:
     parser.add_argument("--json", type=Path, help="also write the proposal here")
     args = parser.parse_args()
 
-    if not (get_settings().anthropic_api_key or os.environ.get("ANTHROPIC_API_KEY")):
-        print("Set ANTHROPIC_API_KEY in api/.env (see .env.example) or the environment.")
+    settings = get_settings()
+    model_name = args.model or settings.agent_model
+    if model_name.startswith("gemini-"):
+        has_key = (
+            settings.gemini_api_key
+            or os.environ.get("GEMINI_API_KEY")
+            or os.environ.get("GOOGLE_API_KEY")
+        )
+        key_name = "GEMINI_API_KEY"
+    else:
+        has_key = settings.anthropic_api_key or os.environ.get("ANTHROPIC_API_KEY")
+        key_name = "ANTHROPIC_API_KEY"
+    if not has_key:
+        print(f"Set {key_name} in api/.env (see .env.example) or the environment.")
         return 2
 
     base = Score.model_validate_json(args.score.read_text())
     start, end = parse_measures(args.measures)
     staves: list[Any] = ["RH", "LH"] if args.staff == "both" else [args.staff]
     selection = Selection(start=start, end=end, staves=staves)
-    model = ClaudeModel(model=args.model, effort=args.effort)
+    model = make_model(model_name, args.effort)
 
     async def show(event: dict[str, Any]) -> None:
         mark = "✓" if event["ok"] else "✗"
@@ -113,6 +129,9 @@ async def main() -> int:
     except anthropic.APIConnectionError:
         print("Couldn't reach the Anthropic API.")
         return 1
+    except gemini_errors.APIError as err:  # bad key, unknown model, quota, server errors
+        print(f"Gemini API error {err.code}: {err.message}")
+        return 2 if err.code in (401, 403) else 1
 
     print_result(base, selection, proposal, model.model)
     if args.json:
