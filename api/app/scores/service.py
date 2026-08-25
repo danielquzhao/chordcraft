@@ -75,7 +75,7 @@ async def head_score(session: AsyncSession, row: ScoreRow) -> Score:
     return Score.model_validate(revision.snapshot)
 
 
-async def _append(
+async def append_revision(
     session: AsyncSession,
     row: ScoreRow,
     *,
@@ -116,7 +116,7 @@ async def save_edit(session: AsyncSession, score_id: uuid.UUID, base: int, ops: 
     current = await head_score(session, row)
     updated = apply_ops(current, ops)
     changes = summary.describe(current, ops)
-    return await _append(
+    return await append_revision(
         session,
         row,
         snapshot=updated,
@@ -133,7 +133,7 @@ async def restore(session: AsyncSession, score_id: uuid.UUID, base: int, number:
     if base != row.head:
         raise Conflict(row.head)
     old = await get_revision(session, score_id, number)
-    return await _append(
+    return await append_revision(
         session,
         row,
         snapshot=Score.model_validate(old.snapshot),
@@ -174,7 +174,7 @@ async def history(session: AsyncSession, score_id: uuid.UUID) -> list[HistoryEnt
     entries = []
     for group in reversed(groups):
         first, last = group[0], group[-1]
-        if last.kind == "edit":
+        if last.kind == "edit" and last.author == "user":
             text = summary.message(
                 summary.merge(summary.Changes.model_validate(r.changes) for r in group)
             )
