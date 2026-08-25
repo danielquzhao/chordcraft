@@ -81,6 +81,20 @@ def test_parallel_fifths_are_flagged():
     assert check(validate(score(), contrary, ALL), "voice_leading").status == "pass"
 
 
+def test_broken_chord_inner_notes_are_not_the_bass():
+    # Alberti bass under a descending melody: the eighth-note D3 → B2 moves in octaves with
+    # D5 → B4, but the bass line is G2 (beat 3) → B2 (beat 4), against the melody.
+    alberti = score(
+        ("LH", "G2", 960, 240),
+        ("LH", "D3", 1200, 240),
+        ("LH", "B2", 1440, 240),
+        ("LH", "D3", 1680, 240),
+        ("RH", "D5", 960, 480),
+        ("RH", "B4", 1440, 480),
+    )
+    assert check(validate(score(), alberti, ALL), "voice_leading").status == "pass"
+
+
 def test_spelling_against_the_key():
     draft = score(("RH", "Gb4", 0, 480), ("RH", "G#4", 480, 480), ("RH", "C##5", 960, 480))
     details = check(validate(score(), draft, ALL), "spelling").details

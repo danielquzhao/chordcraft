@@ -12,8 +12,8 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.agent.context import Selection, key_name
-from app.agent.timing import duration_name, tick_to_beat
-from app.score.model import Note, Score
+from app.agent.timing import beat_ticks, duration_name, tick_to_beat
+from app.score.model import Note, Score, measure_ticks
 from app.score.pitch import (
     STEP_SEMITONES,
     STEPS,
@@ -132,14 +132,28 @@ def range_issues(score: Score, sel: Selection) -> list[str]:
 
 
 def _outer_voices(score: Score, sel: Selection) -> list[tuple[str, int | None, int | None]]:
-    """(position, bass midi, melody midi) at every onset in the selected measures."""
+    """(position, bass midi, melody midi) on each beat of the selected measures.
+
+    The bass is the lowest left-hand note heard anywhere in the beat and the melody is the
+    top right-hand note sounding on the beat. Sampling per beat rather than per onset keeps
+    the inner notes of broken-chord figures (Alberti bass, arpeggios) from being read as the
+    bass line.
+    """
     out = []
+    beat = beat_ticks(score.meta)
     for n in range(sel.start, min(sel.end, len(score.measures)) + 1):
         notes = score.measures[n - 1].notes
-        for t in sorted({x.start for x in notes}):
-            sounding = [x for x in notes if x.start <= t < x.start + x.dur]
-            bass = [to_midi(x.pitch) for x in sounding if x.staff == "LH"]
-            top = [to_midi(x.pitch) for x in sounding if x.staff == "RH"]
+        for t in range(0, measure_ticks(score.meta), beat):
+            bass = [
+                to_midi(x.pitch)
+                for x in notes
+                if x.staff == "LH" and x.start < t + beat and x.start + x.dur > t
+            ]
+            top = [
+                to_midi(x.pitch)
+                for x in notes
+                if x.staff == "RH" and x.start <= t < x.start + x.dur
+            ]
             out.append(
                 (
                     f"m{n} beat {tick_to_beat(t, score.meta)}",
