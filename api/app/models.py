@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, Uuid, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, Uuid, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -60,6 +60,8 @@ class EditJobRow(Base):
     instruction: Mapped[str] = mapped_column(String(2000))
     selection: Mapped[dict[str, Any]] = mapped_column(JSONB)
     status: Mapped[str] = mapped_column(String(16), default="queued")
+    # "bar" (⌘K inline edit) or "chat" (the agent panel, which also gets a reply message).
+    source: Mapped[str] = mapped_column(String(8), default="bar", server_default="bar")
     model: Mapped[str] = mapped_column(String(64))
     # The agent's result: ops, summary, checks report, steps, usage and the drafted score.
     proposal: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
@@ -70,3 +72,21 @@ class EditJobRow(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class MessageRow(Base):
+    """The agent chat for a score. Assistant replies point at the edit job they came from."""
+
+    __tablename__ = "messages"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    score_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("scores.id", ondelete="CASCADE"), index=True
+    )
+    # "user" or "assistant"
+    role: Mapped[str] = mapped_column(String(16))
+    content: Mapped[str] = mapped_column(Text)
+    job_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("edit_jobs.id", ondelete="SET NULL")
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

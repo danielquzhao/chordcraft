@@ -78,7 +78,7 @@ def queue() -> RecordingQueue:
 @pytest.fixture
 async def client(engine, redis, queue) -> AsyncIterator[AsyncClient]:
     async with engine.begin() as conn:
-        await conn.execute(text("TRUNCATE scores, revisions, edit_jobs CASCADE"))
+        await conn.execute(text("TRUNCATE scores, revisions, edit_jobs, messages CASCADE"))
     sessions = async_sessionmaker(engine, expire_on_commit=False)
 
     async def session_override() -> AsyncIterator[AsyncSession]:
