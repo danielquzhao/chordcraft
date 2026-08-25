@@ -1,7 +1,8 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile, status
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +11,7 @@ from app.models import ScoreRow
 from app.score.model import Score
 from app.score.ops import OpError
 from app.scores import service
+from app.scores.importer import MAX_BYTES, ImportFailed, import_score
 from app.scores.schemas import (
     CreateScore,
     HistoryEntry,
@@ -53,6 +55,22 @@ async def list_scores(session: Session) -> list[ScoreSummary]:
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_score(body: CreateScore, session: Session) -> ScoreDetail:
     row, score = await service.create_score(session, body.score)
+    return ScoreDetail(**_summary(row).model_dump(), score=score)
+
+
+@router.post("/import", status_code=status.HTTP_201_CREATED)
+async def import_file(file: UploadFile, session: Session) -> ScoreDetail:
+    """Create a score from an uploaded MusicXML or MIDI file."""
+    data = await file.read(MAX_BYTES + 1)
+    try:
+        # music21 parsing is CPU-bound; keep it off the event loop.
+        score = await run_in_threadpool(import_score, data, file.filename or "upload")
+    except ImportFailed as err:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={"code": "import_failed", "message": str(err)},
+        ) from None
+    row, score = await service.create_score(session, score)
     return ScoreDetail(**_summary(row).model_dump(), score=score)
 
 
