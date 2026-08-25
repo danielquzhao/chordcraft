@@ -6,6 +6,8 @@ from sqlalchemy import text
 
 from app.config import get_settings
 from app.db import engine
+from app.edits.router import router as edits_router
+from app.queue import close_queue
 from app.redis import redis
 from app.scores.router import router as scores_router
 
@@ -13,6 +15,7 @@ from app.scores.router import router as scores_router
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     yield
+    await close_queue()
     await redis.aclose()
     await engine.dispose()
 
@@ -25,6 +28,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(scores_router)
+app.include_router(edits_router)
 
 
 async def _postgres_ok() -> bool:
