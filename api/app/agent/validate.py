@@ -131,34 +131,34 @@ def range_issues(score: Score, sel: Selection) -> list[str]:
     return issues
 
 
-def _outer_voices(score: Score, sel: Selection) -> list[tuple[str, int | None, int | None]]:
-    """(position, bass midi, melody midi) on each beat of the selected measures.
+def _outer_voices(score: Score, sel: Selection) -> list[tuple[str, int | None, int | None, bool]]:
+    """(position, bass midi, melody midi, figured) on each beat of the selected measures.
 
-    The bass is the lowest left-hand note heard anywhere in the beat and the melody is the
-    top right-hand note sounding on the beat. Sampling per beat rather than per onset keeps
-    the inner notes of broken-chord figures (Alberti bass, arpeggios) from being read as the
-    bass line.
+    The bass is the lowest left-hand note heard in the beat and the melody the top
+    right-hand note sounding on it. A beat where the left hand strikes more than one note is
+    "figured" (Alberti bass, arpeggios): its lowest note is often an inner note of the
+    pattern rather than the bass line, so it isn't used for parallel checks.
     """
     out = []
     beat = beat_ticks(score.meta)
     for n in range(sel.start, min(sel.end, len(score.measures)) + 1):
         notes = score.measures[n - 1].notes
         for t in range(0, measure_ticks(score.meta), beat):
-            bass = [
-                to_midi(x.pitch)
-                for x in notes
-                if x.staff == "LH" and x.start < t + beat and x.start + x.dur > t
+            left = [
+                x for x in notes if x.staff == "LH" and x.start < t + beat and x.start + x.dur > t
             ]
             top = [
                 to_midi(x.pitch)
                 for x in notes
                 if x.staff == "RH" and x.start <= t < x.start + x.dur
             ]
+            onsets = {x.start for x in left if x.start >= t}
             out.append(
                 (
                     f"m{n} beat {tick_to_beat(t, score.meta)}",
-                    min(bass) if bass else None,
+                    min(to_midi(x.pitch) for x in left) if left else None,
                     max(top) if top else None,
+                    len(onsets) > 1,
                 )
             )
     return out
@@ -167,8 +167,10 @@ def _outer_voices(score: Score, sel: Selection) -> list[tuple[str, int | None, i
 def parallel_issues(score: Score, sel: Selection) -> list[str]:
     issues = []
     timeline = _outer_voices(score, sel)
-    for (where_a, b1, t1), (where_b, b2, t2) in zip(timeline, timeline[1:], strict=False):
-        if None in (b1, t1, b2, t2) or b1 == b2 or t1 == t2:
+    for (where_a, b1, t1, fig1), (where_b, b2, t2, fig2) in zip(
+        timeline, timeline[1:], strict=False
+    ):
+        if fig1 or fig2 or None in (b1, t1, b2, t2) or b1 == b2 or t1 == t2:
             continue
         assert b1 is not None and t1 is not None and b2 is not None and t2 is not None
         same_direction = (b2 - b1) * (t2 - t1) > 0

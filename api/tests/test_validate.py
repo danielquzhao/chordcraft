@@ -95,6 +95,20 @@ def test_broken_chord_inner_notes_are_not_the_bass():
     assert check(validate(score(), alberti, ALL), "voice_leading").status == "pass"
 
 
+def test_alberti_root_fifth_third_fifth_is_not_parallel_octaves():
+    # The case from a real run: G2 D3 B2 D3 under a G4 → B4 melody. Beat 2's lowest note
+    # (B2) is the third of the figure, not a bass note moving in octaves with the melody.
+    alberti = score(
+        ("LH", "G2", 0, 240),
+        ("LH", "D3", 240, 240),
+        ("LH", "B2", 480, 240),
+        ("LH", "D3", 720, 240),
+        ("RH", "G4", 0, 480),
+        ("RH", "B4", 480, 480),
+    )
+    assert check(validate(score(), alberti, ALL), "voice_leading").status == "pass"
+
+
 def test_spelling_against_the_key():
     draft = score(("RH", "Gb4", 0, 480), ("RH", "G#4", 480, 480), ("RH", "C##5", 960, 480))
     details = check(validate(score(), draft, ALL), "spelling").details
