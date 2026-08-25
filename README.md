@@ -49,7 +49,8 @@ health panel should report `postgres: true` and `redis: true`.
 ## Edit agent (command line)
 
 Runs the LangGraph edit agent against a score file and prints each step, the before/after
-measures, the validation checks, and token usage. Needs `ANTHROPIC_API_KEY` in `api/.env`.
+measures, the validation checks, and token usage. Needs `ANTHROPIC_API_KEY` in `api/.env`, or
+`GEMINI_API_KEY` with `AGENT_MODEL` set to a `gemini-*` model (or pass `--model gemini-...`).
 
 ```bash
 cd api && .venv/bin/python -m app.agent.cli "Turn the left hand into a walking bass line" --measures 5-8 --staff LH

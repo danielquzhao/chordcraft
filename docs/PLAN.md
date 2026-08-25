@@ -14,7 +14,7 @@ Design mockups: https://claude.ai/artifact/8fdpAqxGUCAXUCpg8Nm6FL (editor + empt
 | Frontend | React, TypeScript, Vite, Zustand, TanStack Query, VexFlow, Tone.js |
 | API | FastAPI, Pydantic v2, SQLAlchemy 2 (async), Alembic |
 | Jobs | Redis + arq; progress over Redis pub/sub → SSE |
-| Agent | LangGraph for the flow; the `anthropic` SDK for model calls (Claude Opus 5.5) |
+| Agent | LangGraph for the flow; model calls through a provider adapter: Claude (`anthropic` SDK) or Gemini (`google-genai`), chosen by model name |
 | Import/export | music21 (server side) |
 | Auth | Supabase Auth (JWT verified by the API) |
 | Deploy | Vercel (web); Railway or Fly (API, worker, Postgres, Redis) |
@@ -90,13 +90,20 @@ Code: `api/app/agent/` (`graph.py`, `tools.py`, `validate.py`, `context.py`, `mo
   - rhythm: no overlaps, chord tones share a length (fail)
   - hand span ≤ a tenth (fail)
   - comfortable range for each hand (warning)
-  - parallel 5ths/8ves between bass and melody (warning)
+  - parallel 5ths/8ves between bass and melody, compared once per beat so broken-chord
+    figures don't count as the bass line (warning)
   - accidentals spelled for the key (warning)
 - **repair**: failures go back as the `submit_edit` tool result, at most twice; after that the
   proposal is returned with the failures shown.
-- Model calls: adaptive thinking (can't be disabled on Opus 5.5), `effort: high`, prompt caching,
+- Model calls: Claude Sonnet 5.5 at `effort: medium` by default (tested: ~2–10¢ an edit, 2–3
+  turns), adaptive thinking, prompt caching,
   server-side refusal fallback. Forced `tool_choice` isn't allowed, so the prompt asks for tools
   and a text-only answer gets one nudge before it's accepted as the reply.
+- Providers: `make_model()` sends `gemini-*` model ids to the Gemini adapter (`gemini.py`) and
+  everything else to Claude. The graph keeps one conversation format; each adapter translates it
+  and passes the model's own reply back verbatim (Claude thinking blocks, Gemini thought
+  signatures). Gemini 3.8 Flash works but tested worse: one tool call per turn with long
+  thinking, so 3 of 4 test edits passed and they cost more than Sonnet overall.
 - Each node emits a step event, which M4 relays to the agent panel.
 - CLI harness: `python -m app.agent.cli` (see README). Tests use a scripted fake model.
 
