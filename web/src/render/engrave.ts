@@ -8,6 +8,7 @@ import {
   Beam,
   Dot,
   Formatter,
+  GhostNote,
   Renderer,
   Stave,
   StaveConnector,
@@ -16,12 +17,15 @@ import {
   Voice,
   VoiceMode,
   type RenderContext,
+  type Tickable,
 } from 'vexflow/bravura'
 import { decompose, staffEvents, type StaffEvent } from '../score/events'
 import { keyFifths, parsePitch } from '../score/pitch'
-import type { Measure, Meta, Score, Staff } from '../score/types'
+import type { Measure, Meta, Note, Score, Staff } from '../score/types'
 
 const INK = '#1c1b18'
+/** Removed notes in a proposed edit (matches --removed in index.css). */
+const REMOVED = '#b4531c'
 const CHORD_FONT = 'Geist, ui-sans-serif, system-ui, sans-serif'
 
 /** Distance from the treble stave's y to the bass stave's y. */
@@ -162,6 +166,38 @@ function buildStaff(events: StaffEvent[], staff: Staff, meta: Meta): Built {
   return built
 }
 
+/**
+ * Notes a proposed edit removes, as a second voice: orange noteheads, with invisible
+ * spacers for the gaps so they line up with the beats they used to occupy.
+ */
+function buildGhosts(notes: Note[], staff: Staff, meta: Meta): Tickable[] | null {
+  if (!notes.length) return null
+  const measure: Measure = {
+    n: 0, chord: null, section: null, notes: notes.map((x) => ({ ...x, staff, voice: 1 })),
+  }
+  const tickables: Tickable[] = []
+  for (const event of staffEvents(measure, staff, meta)) {
+    for (const token of decompose(event.dur, meta.ppq)) {
+      if (!event.notes.length) {
+        tickables.push(new GhostNote({ duration: token.duration, dots: token.dots }))
+        continue
+      }
+      const note = new StaveNote({
+        keys: event.notes.map((n) => vfKey(n.pitch)),
+        duration: token.duration,
+        dots: token.dots,
+        clef: CLEF[staff],
+        autoStem: true,
+      })
+      if (token.dots) Dot.buildAndAttach([note], { all: true })
+      note.setStyle({ fillStyle: REMOVED, strokeStyle: REMOVED })
+      note.setLedgerLineStyle({ fillStyle: REMOVED, strokeStyle: REMOVED })
+      tickables.push(note)
+    }
+  }
+  return tickables
+}
+
 function drawText(ctx: RenderContext, text: string, x: number, y: number, size: number, weight: number) {
   ctx.save()
   ctx.setFont(CHORD_FONT, size, weight)
@@ -169,7 +205,16 @@ function drawText(ctx: RenderContext, text: string, x: number, y: number, size: 
   ctx.restore()
 }
 
-export function engrave(container: HTMLDivElement, score: Score, width: number): Layout {
+/**
+ * Draw the score. `ghosts` (measure number → notes) adds removed notes from a proposed edit
+ * as faded orange notes alongside the new ones.
+ */
+export function engrave(
+  container: HTMLDivElement,
+  score: Score,
+  width: number,
+  ghosts?: Map<number, Note[]>,
+): Layout {
   container.innerHTML = ''
   const { meta } = score
   const systems = planSystems(score, width)
@@ -223,23 +268,39 @@ export function engrave(container: HTMLDivElement, score: Score, width: number):
         RH: buildStaff(staffEvents(measure, 'RH', meta), 'RH', meta),
         LH: buildStaff(staffEvents(measure, 'LH', meta), 'LH', meta),
       }
-      const voices = (['RH', 'LH'] as const).map((staff) => {
-        const voice = new Voice({ numBeats: meta.time[0], beatValue: meta.time[1] })
+      const newVoice = (tickables: Tickable[]) =>
+        new Voice({ numBeats: meta.time[0], beatValue: meta.time[1] })
           .setMode(VoiceMode.SOFT)
-          .addTickables(built[staff].notes)
-        Accidental.applyAccidentals([voice], key)
-        return voice
-      })
+          .addTickables(tickables)
+      const ghostNotes = ghosts?.get(n) ?? []
+      const ghostVoices = {
+        RH: buildGhosts(ghostNotes.filter((x) => x.staff === 'RH'), 'RH', meta),
+        LH: buildGhosts(ghostNotes.filter((x) => x.staff === 'LH'), 'LH', meta),
+      }
       const formatter = new Formatter()
-      voices.forEach((v) => formatter.joinVoices([v]))
-      formatter.format(voices, Math.max(40, treble.getNoteEndX() - treble.getNoteStartX() - 14))
+      const voices = (['RH', 'LH'] as const).map((staff) => {
+        const main = newVoice(built[staff].notes)
+        const ghost = ghostVoices[staff] && newVoice(ghostVoices[staff])
+        const onStaff = ghost ? [main, ghost] : [main]
+        Accidental.applyAccidentals(onStaff, key)
+        formatter.joinVoices(onStaff)
+        return { main, ghost }
+      })
+      formatter.format(
+        voices.flatMap((v) => (v.ghost ? [v.main, v.ghost] : [v.main])),
+        Math.max(40, treble.getNoteEndX() - treble.getNoteStartX() - 14),
+      )
 
       ;(['RH', 'LH'] as const).forEach((staff, k) => {
         // generateBeams breaks beams at rests itself, so pass every note in order.
         const beams = Beam.generateBeams(built[staff].notes)
-        voices[k].draw(ctx, staves[staff])
+        voices[k].main.draw(ctx, staves[staff])
         beams.forEach((b) => b.setContext(ctx).draw())
         built[staff].ties.forEach((t) => t.setContext(ctx).draw())
+        if (voices[k].ghost) {
+          voices[k].ghost.draw(ctx, staves[staff])
+          for (const t of ghostVoices[staff] ?? []) t.getSVGElement()?.setAttribute('data-ghost', '')
+        }
 
         for (const { event, note } of built[staff].boxes) {
           const ids = event.notes.map((x) => x.id)
