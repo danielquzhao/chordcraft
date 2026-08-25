@@ -109,13 +109,25 @@ Code: `api/app/agent/` (`graph.py`, `tools.py`, `validate.py`, `context.py`, `mo
 
 ## Async flow
 
-1. `POST /scores/{id}/edits {instruction, selection, base_revision}` → `edit_jobs` row
-   (`queued`), enqueue in arq, return `job_id`.
-2. Worker runs the graph, publishes progress to Redis channel `job:{id}`.
-3. `GET /jobs/{id}/events` streams the channel as SSE.
-4. Finished graph writes a `proposals` row (ops, validation report, summary).
-5. `POST /proposals/{id}/accept` applies ops and creates a revision. If head moved since
-   `base_revision`: apply if the touched note IDs are unchanged, else `409` and offer a re-run.
+Code: `api/app/edits/` (service, router, events), `api/app/worker.py`, `web/src/agent/`.
+
+1. `POST /scores/{id}/edits {instruction, selection, base}` → an `edit_jobs` row (`queued`),
+   enqueued in arq. 409 if `base` isn't the head (the client flushes its saves first).
+2. The worker runs the agent and publishes each step to Redis: a pub/sub channel plus a
+   short-lived log, every event numbered.
+3. `GET /edits/{id}/events` streams them as SSE, replaying the log first so a late or
+   reconnecting browser misses nothing; it ends with a `done` event.
+4. The finished proposal (ops, summary, checks, steps, drafted score) is stored on the job.
+5. `POST /edits/{id}/accept` saves it as an agent revision (message = the request). If the
+   head moved since `base`, it still applies when the notes and chords it touches are
+   unchanged; otherwise 409. `POST /edits/{id}/reject` discards it (also cancels a running
+   job: the worker won't overwrite a rejected job).
+
+In the editor: Shift+click or Shift+arrows select measures, ⌘K opens the inline bar (hands:
+both, right or left), progress streams in, and the proposal shows as a ghost-note diff
+(added notes blue, removed notes faded orange as a second voice) with Accept (⌘↵) and Reject
+(⌘⌫). Manual editing is locked while an edit runs or is under review. Accepted edits go on
+the undo stack, so ⌘Z reverts them like any other change.
 
 ## Database
 
@@ -123,8 +135,7 @@ Code: `api/app/agent/` (`graph.py`, `tools.py`, `validate.py`, `context.py`, `mo
 |---|---|
 | `scores` | id, owner_id, title, head (current version number), created_at, updated_at |
 | `revisions` | id, score_id, number, author (`user`/`agent`), kind (`create`/`edit`/`restore`), message, snapshot JSONB, ops JSONB, changes JSONB, created_at |
-| `edit_jobs` | id, score_id, base_revision_id, instruction, selection JSONB, status, error, timings |
-| `proposals` | id, job_id, ops JSONB, validation JSONB, summary, status (`pending`/`accepted`/`rejected`) |
+| `edit_jobs` | id, score_id, base (version), instruction, selection JSONB, status (`queued`/`running`/`ready`/`failed`/`accepted`/`rejected`), model, proposal JSONB, error, accepted_revision |
 | `messages` | id, score_id, role, content, job_id |
 
 - Revisions are immutable: every save appends one with a full snapshot (a 32-bar piano score is a
@@ -159,7 +170,7 @@ TypeScript API types are generated from FastAPI's OpenAPI schema.
 | M1 | Score core | Model, `apply_ops` (Py + TS) with tests, VexFlow grand staff, keyboard entry, playback | Done |
 | M2 | Persistence | Scores + revisions in Postgres, autosave, History panel with restore | Done |
 | M3 | Agent (sync) | LangGraph agent + validator working via a CLI/test harness on fixture scores | Done |
-| M4 | Async + diff | arq jobs, SSE progress, ghost-note diff, accept/reject/undo | |
+| M4 | Async + diff | arq jobs, SSE progress, ghost-note diff, accept/reject/undo | Done |
 | M5 | Product surface | Chat with @-mentions, lead sheet, empty-state flows, MusicXML/MIDI import | |
 | M6 | Polish | Tab autocomplete, Supabase auth, deploy | |
 

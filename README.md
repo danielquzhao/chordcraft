@@ -30,7 +30,7 @@ cp .env.example .env
 .venv/bin/uvicorn app.main:app --reload
 ```
 
-Worker (from `api/`):
+Worker (from `api/`), needed for agent edits (⌘K in the editor):
 
 ```bash
 .venv/bin/arq app.worker.WorkerSettings
