@@ -52,6 +52,9 @@ class State(TypedDict, total=False):
     base: Score
     selection: Selection
     instruction: str
+    # Chat: earlier (role, text) turns, and whether a plain-text answer is a fine outcome.
+    history: list[tuple[str, str]]
+    conversational: bool
     draft: Draft
     messages: list[dict[str, Any]]
     pending: list[ToolCall]
@@ -81,7 +84,12 @@ def build_graph(model: Model, on_event: EventSink | None = None):
         return {
             "draft": Draft(score=state["base"], selection=selection),
             "messages": [
-                {"role": "user", "content": prompts.user_message(text, state["instruction"])}
+                {
+                    "role": "user",
+                    "content": prompts.user_message(
+                        text, state["instruction"], state.get("history")
+                    ),
+                }
             ],
             "steps": [step],
             "turns": 0,
@@ -199,8 +207,9 @@ def build_graph(model: Model, on_event: EventSink | None = None):
         }
 
     async def nudge(state: State) -> State:
-        """The model answered in prose. Ask once for tool use; after that, take the answer."""
-        if state["nudged"] or state["draft"].ops:
+        """The model answered in prose. In chat that's an answer; otherwise ask once for tool
+        use, then take the answer."""
+        if state.get("conversational") or state["nudged"] or state["draft"].ops:
             return {"outcome": "ready", "submitted": state.get("text", "")}
         return {
             "nudged": True,
@@ -244,8 +253,14 @@ async def run_agent(
     instruction: str,
     model: Model,
     on_event: EventSink | None = None,
+    history: list[tuple[str, str]] | None = None,
+    conversational: bool = False,
 ) -> Proposal:
-    """Run the agent and return a proposal: the ops, the validation report, and a summary."""
+    """Run the agent and return a proposal: the ops, the validation report, and a summary.
+
+    `history` is recent chat for follow-up requests; `conversational` lets a question be
+    answered in plain text with no edit.
+    """
     if selection.end > len(base.measures):
         raise ValueError(
             f"selection ends at m{selection.end}, but the score has {len(base.measures)}"
@@ -253,7 +268,13 @@ async def run_agent(
     graph = build_graph(model, on_event)
     # Each turn passes through a few nodes; leave headroom over MAX_TURNS.
     final: State = await graph.ainvoke(
-        {"base": base, "selection": selection, "instruction": instruction},
+        {
+            "base": base,
+            "selection": selection,
+            "instruction": instruction,
+            "history": history or [],
+            "conversational": conversational,
+        },
         {"recursion_limit": MAX_TURNS * 4 + 10},
     )
     usage = final["usage"]

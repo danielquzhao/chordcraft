@@ -18,15 +18,24 @@ follow its usual conventions; a walking bass, for example, moves mostly by step 
 into the next chord's root. Voice chords for how they sound on a piano: close-position chords \
 low in the bass sound muddy, so spread them out there. Change what the request needs and \
 leave the rest alone. If the request is unclear or can't be done in the selection, say so \
-briefly instead of editing.
+briefly instead of editing. If the musician asks a question rather than for a change, answer \
+it in a few plain sentences without editing.
 
 Finish by calling submit_edit with a one- or two-sentence summary written for the musician \
 that describes what you actually wrote.\
 """
 
 
-def user_message(context: str, instruction: str) -> str:
-    return f"{context}\n\nRequest: {instruction}"
+def user_message(
+    context: str, instruction: str, history: list[tuple[str, str]] | None = None
+) -> str:
+    """The score context, recent conversation (if any), and the request."""
+    parts = [context]
+    if history:
+        lines = [f"{'Musician' if role == 'user' else 'You'}: {text}" for role, text in history]
+        parts.append("Earlier in this conversation:\n" + "\n".join(lines))
+    parts.append(f"Request: {instruction}")
+    return "\n\n".join(parts)
 
 
 NUDGE = "Make the change with the editing tools, then call submit_edit."
