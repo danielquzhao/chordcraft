@@ -2,6 +2,8 @@ import { useCallback, useRef, useState } from 'react'
 import { useKeyboard } from '../input/useKeyboard'
 import { play, stop } from '../playback/player'
 import { markNotes } from '../render/engrave'
+import { EditBar } from '../agent/EditBar'
+import { agentLocksScore, useAgent } from '../agent/store'
 import { ScoreView } from '../render/ScoreView'
 import type { Staff } from '../score/types'
 import { Sidebar } from './Sidebar'
@@ -63,8 +65,14 @@ export function Editor() {
   const selected = useEditor((s) => s.selected)
   const duration = useEditor((s) => s.duration)
   const dotted = useEditor((s) => s.dotted)
-  const canUndo = useEditor((s) => s.past.length > 0)
-  const canRedo = useEditor((s) => s.future.length > 0)
+  const range = useEditor((s) => s.range)
+  const agentPhase = useAgent((s) => s.phase)
+  const agentSelection = useAgent((s) => s.selection)
+  const proposal = useAgent((s) => s.proposal)
+  const diff = useAgent((s) => s.diff)
+  const locked = agentLocksScore(agentPhase)
+  const canUndo = useEditor((s) => s.past.length > 0) && !locked
+  const canRedo = useEditor((s) => s.future.length > 0) && !locked
   const { undo, redo, setDuration, toggleDot, moveTo, restore, showRevision, dismissNotice } =
     useEditor.getState()
 
@@ -82,7 +90,10 @@ export function Editor() {
       return
     }
     const state = useEditor.getState()
-    const shown = state.preview?.score ?? state.score
+    const agent = useAgent.getState()
+    const shown =
+      state.preview?.score ??
+      (agent.phase === 'ready' && agent.proposal ? agent.proposal.score : state.score)
     if (!shown) return
     setPlayState('loading')
     setAudioError(null)
@@ -99,7 +110,9 @@ export function Editor() {
 
   useKeyboard(togglePlay)
 
-  const score = preview?.score ?? current
+  // What's on the page: an old version, the agent's proposal, or the current score.
+  const reviewing = agentPhase === 'ready' && proposal !== null
+  const score = preview?.score ?? (reviewing ? proposal.score : current)
   if (!score) {
     return (
       <div className="app">
@@ -120,7 +133,7 @@ export function Editor() {
     )
   }
 
-  const readOnly = preview !== null
+  const readOnly = preview !== null || locked
   const { meta } = score
   const beatTicks = (meta.ppq * 4) / meta.time[1]
   const beat = Math.round((1 + cursor.tick / beatTicks) * 100) / 100
@@ -235,12 +248,32 @@ export function Editor() {
             Redo <span className="kbd">⇧⌘Z</span>
           </button>
         </div>
+
+        <button
+          type="button"
+          className="tool text ask"
+          onClick={() => useAgent.getState().open()}
+          disabled={locked}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7z" />
+          </svg>
+          Ask agent <span className="kbd">⌘K</span>
+        </button>
       </div>
       )}
 
       <main className="canvas">
+        {!preview && <EditBar />}
         <article className="paper">
-          <ScoreView score={score} readOnly={readOnly} hostRef={hostRef} />
+          <ScoreView
+            score={score}
+            readOnly={readOnly}
+            hostRef={hostRef}
+            diff={reviewing && !preview ? diff : null}
+            highlight={preview ? null : locked ? agentSelection : range}
+          />
         </article>
         {audioError && <p className="error" role="alert">{audioError}</p>}
       </main>
@@ -256,6 +289,8 @@ export function Editor() {
           <span><span className="kbd">↑</span><span className="kbd">↓</span> pitch</span>
           <span><span className="kbd">←</span><span className="kbd">→</span> move</span>
           <span><span className="kbd">Tab</span> hand</span>
+          <span><span className="kbd">⇧</span>+click bars</span>
+          <span><span className="kbd">⌘K</span> ask agent</span>
         </span>
       </footer>
     </div>

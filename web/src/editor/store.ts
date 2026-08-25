@@ -33,6 +33,9 @@ export type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'offline'
 
 export type Preview = { number: number; message: string; score: Score }
 
+/** Measures selected with Shift+click or Shift+arrows, inclusive. */
+export type MeasureRange = { start: number; end: number }
+
 type EditorState = {
   scores: ScoreSummary[]
   scoreId: string | null
@@ -52,6 +55,7 @@ type EditorState = {
   preview: Preview | null
   cursor: Cursor
   selected: string | null
+  range: MeasureRange | null
   /** Base note value for entry, in ticks; `dotted` lengthens it by half. */
   duration: number
   dotted: boolean
@@ -67,6 +71,10 @@ type EditorState = {
   showRevision: (number: number | null) => Promise<void>
   restore: (number: number) => Promise<void>
   moveTo: (next: Next) => void
+  /** Extend the measure range from the cursor's measure to `measure`; null clears it. */
+  selectTo: (measure: number | null) => void
+  /** Install an agent edit the server accepted, and make it undoable. */
+  applyAccepted: (head: number, score: Score, ops: Op[]) => void
   setDuration: (ticks: number) => void
   toggleDot: () => void
   dismissNotice: () => void
@@ -95,8 +103,8 @@ function scheduleSave(delay = SAVE_DELAY) {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-/** Send anything queued and wait for it, e.g. before switching scores. */
-async function settle() {
+/** Send anything queued and wait for it, e.g. before switching scores or asking the agent. */
+export async function settle() {
   clearTimeout(saveTimer)
   for (let i = 0; i < 50; i++) {
     const s = useEditor.getState()
@@ -142,6 +150,7 @@ export const useEditor = create<EditorState>()((set, get) => {
       future: [],
       preview: null,
       selected: null,
+      range: null,
       cursor: START,
     })
   }
@@ -162,6 +171,7 @@ export const useEditor = create<EditorState>()((set, get) => {
     preview: null,
     cursor: START,
     selected: null,
+    range: null,
     duration: 480,
     dotted: false,
 
@@ -283,6 +293,34 @@ export const useEditor = create<EditorState>()((set, get) => {
     },
 
     moveTo: (next) => set(next),
+
+    selectTo: (measure) => {
+      if (measure === null) return set({ range: null })
+      const { cursor, range } = get()
+      const anchor = range ? (cursor.measure === range.end ? range.start : range.end) : cursor.measure
+      set({
+        range: { start: Math.min(anchor, measure), end: Math.max(anchor, measure) },
+        cursor: { ...cursor, measure, tick: 0 },
+        selected: null,
+      })
+    },
+
+    applyAccepted: (head, score, ops) => {
+      const { score: before, scoreId } = get()
+      if (!before || !scoreId) return
+      // The server applied the ops; computing them locally gives the inverse for undo.
+      const { inverse } = applyOpsWithInverse(before, ops)
+      set((s) => ({
+        score,
+        head,
+        past: [...s.past, { ops, inverse }].slice(-HISTORY_LIMIT),
+        future: [],
+        range: null,
+        selected: null,
+      }))
+      clampCursor()
+      void refreshSidebar(scoreId)
+    },
     setDuration: (ticks) => set({ duration: ticks, dotted: false }),
     toggleDot: () => set((s) => ({ dotted: !s.dotted && s.duration > 120 })),
     dismissNotice: () => set({ notice: null }),

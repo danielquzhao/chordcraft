@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { useEditor } from '../editor/store'
+import type { ScoreDiff } from '../score/diff'
 import type { Score } from '../score/types'
-import { engrave, markNotes, type Layout } from './engrave'
+import { engrave, markNotes, type Layout, type MeasureBox } from './engrave'
 import { cursorLine, hitTest } from './geometry'
 
 /** VexFlow measures glyphs while laying out, so wait for the music font before the first draw. */
@@ -29,16 +30,36 @@ function useWidth(ref: RefObject<HTMLElement | null>): number {
 
 type Props = {
   score: Score
-  /** Viewing an old version: no cursor, selection or clicks. */
+  /** Viewing an old version or an agent proposal: no cursor, selection or clicks. */
   readOnly: boolean
   /** The element VexFlow draws into; the editor also uses it for playback highlights. */
   hostRef: RefObject<HTMLDivElement | null>
+  /** A proposed edit: removed notes drawn as ghosts, added note ids drawn in blue. */
+  diff?: ScoreDiff | null
+  /** Measures to outline (the selection, or what the agent is editing). */
+  highlight?: { start: number; end: number } | null
 }
 
-export function ScoreView({ score, readOnly, hostRef }: Props) {
+/** One outline per system covering the highlighted measures on it. */
+function highlightBoxes(layout: Layout, range: { start: number; end: number }) {
+  const bySystem = new Map<number, MeasureBox[]>()
+  for (const m of layout.measures) {
+    if (m.n < range.start || m.n > range.end) continue
+    bySystem.set(m.system, [...(bySystem.get(m.system) ?? []), m])
+  }
+  return [...bySystem.values()].map((ms) => {
+    const left = Math.min(...ms.map((m) => m.x))
+    const right = Math.max(...ms.map((m) => m.x + m.width))
+    const top = ms[0].staves.RH.top - 26
+    return { key: ms[0].n, left: left - 4, width: right - left + 8, top, height: ms[0].staves.LH.bottom + 22 - top }
+  })
+}
+
+export function ScoreView({ score, readOnly, hostRef, diff, highlight }: Props) {
   const cursor = useEditor((s) => s.cursor)
   const selected = useEditor((s) => s.selected)
   const moveTo = useEditor((s) => s.moveTo)
+  const selectTo = useEditor((s) => s.selectTo)
   const wrapRef = useRef<HTMLDivElement>(null)
   const width = useWidth(wrapRef)
   const fontReady = useMusicFont()
@@ -46,8 +67,12 @@ export function ScoreView({ score, readOnly, hostRef }: Props) {
 
   useLayoutEffect(() => {
     if (!hostRef.current || !fontReady || width < 200) return
-    setLayout(engrave(hostRef.current, score, width))
-  }, [hostRef, score, width, fontReady])
+    setLayout(engrave(hostRef.current, score, width, diff?.removed))
+  }, [hostRef, score, width, fontReady, diff])
+
+  useLayoutEffect(() => {
+    if (hostRef.current) markNotes(hostRef.current, 'is-added', diff?.added ?? [])
+  }, [hostRef, layout, diff])
 
   useLayoutEffect(() => {
     const ids = selected && !readOnly ? [selected] : []
@@ -60,7 +85,15 @@ export function ScoreView({ score, readOnly, hostRef }: Props) {
     if (!layout || !hostRef.current || readOnly) return
     const rect = hostRef.current.getBoundingClientRect()
     const hit = hitTest(layout, e.clientX - rect.left, e.clientY - rect.top)
-    if (hit) moveTo({ cursor: hit.cursor, selected: hit.select })
+    if (!hit) return
+    if (e.shiftKey) {
+      // Shift+click selects whole measures, for asking the agent about a passage.
+      e.preventDefault()
+      selectTo(hit.cursor.measure)
+      return
+    }
+    selectTo(null)
+    moveTo({ cursor: hit.cursor, selected: hit.select })
   }
 
   return (
@@ -72,6 +105,16 @@ export function ScoreView({ score, readOnly, hostRef }: Props) {
         role="img"
         aria-label={`Score: ${score.meta.title}, ${score.measures.length} measures`}
       />
+      {layout &&
+        highlight &&
+        highlightBoxes(layout, highlight).map((b) => (
+          <div
+            key={b.key}
+            className="score-range"
+            style={{ left: b.left, top: b.top, width: b.width, height: b.height }}
+            aria-hidden="true"
+          />
+        ))}
       {line && (
         <div
           className="score-cursor"

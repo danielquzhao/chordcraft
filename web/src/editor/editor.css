@@ -468,3 +468,177 @@ button:focus-visible {
     padding: 16px;
   }
 }
+
+/* Agent edits */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.tool.ask {
+  color: var(--added);
+  border: 1px solid #c9d3ee;
+  background: var(--paper-raised);
+}
+
+.editbar {
+  max-width: 1100px;
+  margin: 0 auto 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 12px;
+  border: 1px solid #c9d3ee;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(35, 80, 200, 0.08);
+}
+
+.editbar.ready {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.editbar.failed {
+  border-color: #e7c7b2;
+  box-shadow: none;
+  background: #fbefe6;
+  color: #7a3a12;
+}
+
+.editbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.editbar .sparkle {
+  color: var(--added);
+  flex: none;
+}
+
+.editbar .scope {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: #e6ebf8;
+  color: var(--added);
+}
+
+.editbar-input {
+  flex: 1 1 240px;
+  min-width: 0;
+  height: 34px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+.editbar-text {
+  flex: 1 1 240px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.45;
+}
+
+.editbar .instruction {
+  color: var(--ink);
+}
+
+.editbar .muted {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.editbar .counts {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.editbar .counts .added {
+  color: var(--added);
+}
+
+.editbar .counts .removed {
+  color: var(--removed);
+}
+
+.editbar .checks {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0 2px 26px;
+  border-top: 1px solid #ecf0fa;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.editbar .checks .fail strong {
+  color: var(--removed);
+}
+
+.kbd-inverse {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.primary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid #c9d3ee;
+  border-top-color: var(--added);
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 3s;
+  }
+}
+
+.score-range {
+  position: absolute;
+  border: 1px dashed rgba(35, 80, 200, 0.55);
+  border-radius: 6px;
+  background: rgba(35, 80, 200, 0.05);
+  pointer-events: none;
+}
+
+.score-host [data-note-id].is-added,
+.score-host [data-note-id].is-added * {
+  fill: var(--added);
+  stroke: var(--added);
+}
+
+.score-host [data-ghost] {
+  opacity: 0.6;
+}

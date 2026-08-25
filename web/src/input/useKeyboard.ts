@@ -6,9 +6,13 @@
 //   Left/Right     previous / next chord or rest     Tab         switch hands
 //   Backspace      delete note                       Esc         clear selection
 //   Cmd+Z          undo                              Cmd+Shift+Z redo
-//   Space          play / stop
+//   Space          play / stop                       Shift+Left/Right  select measures
+//   Cmd+K          ask the agent to edit the selection
+// While the agent works or a proposal is shown: Cmd+Enter accept, Cmd+Backspace reject,
+// Esc cancels a running edit.
 
 import { useEffect } from 'react'
+import { agentLocksScore, useAgent } from '../agent/store'
 import { DURATIONS, entryTicks, newNoteId, useEditor } from '../editor/store'
 import {
   addChordTone,
@@ -38,6 +42,24 @@ export function useKeyboard(togglePlay: () => void) {
       const mod = e.metaKey || e.ctrlKey
       const key = e.key
       if (!score) return
+
+      if (mod && key.toLowerCase() === 'k') {
+        e.preventDefault()
+        if (!preview) useAgent.getState().open()
+        return
+      }
+
+      // The agent is working, or its proposal is on the score: review it, don't edit by hand.
+      const agent = useAgent.getState()
+      if (agentLocksScore(agent.phase)) {
+        if (mod && key === 'Enter') void agent.accept()
+        else if (mod && key === 'Backspace') void agent.reject()
+        else if (key === 'Escape' && agent.phase === 'running') void agent.reject()
+        else if (key === ' ') togglePlay()
+        else return
+        e.preventDefault()
+        return
+      }
 
       // An old version from History is read-only: only playback and leaving the preview work.
       if (preview) {
@@ -96,6 +118,13 @@ export function useKeyboard(togglePlay: () => void) {
           }
           case 'ArrowLeft':
           case 'ArrowRight': {
+            if (e.shiftKey) {
+              const step = key === 'ArrowRight' ? 1 : -1
+              const target = Math.min(score.measures.length, Math.max(1, cursor.measure + step))
+              state.selectTo(target)
+              return true
+            }
+            state.selectTo(null)
             const r = moveCursor(score, cursor, key === 'ArrowRight' ? 1 : -1)
             moveTo({ cursor: r.cursor, selected: r.select })
             return true
@@ -113,6 +142,7 @@ export function useKeyboard(togglePlay: () => void) {
           }
           case 'Escape':
             moveTo({ selected: null })
+            state.selectTo(null)
             return true
           case ' ':
             togglePlay()

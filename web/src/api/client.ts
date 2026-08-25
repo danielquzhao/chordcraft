@@ -28,6 +28,48 @@ export type RevisionDetail = {
   score: Score
 }
 
+export type Selection = { start: number; end: number; staves: ('RH' | 'LH')[] }
+
+export type AgentStep = { name: string; detail: string; ok: boolean }
+
+export type Check = {
+  id: string
+  label: string
+  status: 'pass' | 'warn' | 'fail'
+  details: string[]
+}
+
+export type Proposal = {
+  status: 'ready' | 'failed'
+  ops: Op[]
+  summary: string
+  report: { checks: Check[] } | null
+  steps: AgentStep[]
+  score: Score
+  usage: Record<string, number>
+  error: string | null
+}
+
+export type EditJob = {
+  id: string
+  score_id: string
+  base: number
+  instruction: string
+  selection: Selection
+  status: 'queued' | 'running' | 'ready' | 'failed' | 'accepted' | 'rejected'
+  model: string
+  proposal: Proposal | null
+  error: string | null
+  accepted_revision: number | null
+  created_at: string
+}
+
+/** Server-sent progress events for an edit job (see api/app/edits/events.py). */
+export type EditEvent =
+  | ({ seq: number; type: 'step' } & AgentStep)
+  | { seq: number; type: 'status'; status: string }
+  | { seq: number; type: 'done'; status: EditJob['status']; error: string | null }
+
 export class ApiError extends Error {
   status: number
   detail: unknown
@@ -64,4 +106,12 @@ export const api = {
   history: (id: string) => request<HistoryEntry[]>('GET', `/scores/${id}/history`),
   revision: (id: string, number: number) =>
     request<RevisionDetail>('GET', `/scores/${id}/revisions/${number}`),
+  createEdit: (scoreId: string, base: number, instruction: string, selection: Selection) =>
+    request<EditJob>('POST', `/scores/${scoreId}/edits`, { base, instruction, selection }),
+  getEdit: (id: string) => request<EditJob>('GET', `/edits/${id}`),
+  acceptEdit: (id: string) =>
+    request<{ head: number; score: Score; ops: Op[] }>('POST', `/edits/${id}/accept`),
+  rejectEdit: (id: string) => request<void>('POST', `/edits/${id}/reject`),
+  /** EventSource URL for an edit's progress. */
+  editEventsUrl: (id: string) => `/api/edits/${id}/events`,
 }
