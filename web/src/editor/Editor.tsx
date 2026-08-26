@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { useKeyboard } from '../input/useKeyboard'
 import { play, stop } from '../playback/player'
 import { markNotes } from '../render/engrave'
+import { ChatPanel } from '../agent/ChatPanel'
 import { EditBar } from '../agent/EditBar'
 import { agentLocksScore, useAgent } from '../agent/store'
 import { ScoreView } from '../render/ScoreView'
@@ -66,6 +67,8 @@ export function Editor() {
   const duration = useEditor((s) => s.duration)
   const dotted = useEditor((s) => s.dotted)
   const range = useEditor((s) => s.range)
+  const chatOpen = useEditor((s) => s.chatOpen)
+  const view = useEditor((s) => s.view)
   const agentPhase = useAgent((s) => s.phase)
   const agentSelection = useAgent((s) => s.selection)
   const proposal = useAgent((s) => s.proposal)
@@ -157,6 +160,19 @@ export function Editor() {
           <span className="chip">{meta.time.join('/')}</span>
           <span className="chip mono">♩ = {meta.tempo}</span>
         </div>
+        <div className="group" role="group" aria-label="View">
+          {(['score', 'lead'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              className="tool text"
+              aria-pressed={view === v}
+              onClick={() => useEditor.getState().setView(v)}
+            >
+              {v === 'score' ? 'Score' : 'Lead sheet'}
+            </button>
+          ))}
+        </div>
         <span className={`save-status ${status}`} role="status">
           {STATUS_TEXT[status]}
         </span>
@@ -226,6 +242,7 @@ export function Editor() {
           </button>
         </div>
 
+        {view === 'score' && (
         <div className="group" role="group" aria-label="Hand">
           {(['RH', 'LH'] as const).map((staff) => (
             <button
@@ -239,6 +256,7 @@ export function Editor() {
             </button>
           ))}
         </div>
+        )}
 
         <div className="group" role="group" aria-label="History">
           <button type="button" className="tool text" onClick={undo} disabled={!canUndo}>
@@ -273,6 +291,7 @@ export function Editor() {
             hostRef={hostRef}
             diff={reviewing && !preview ? diff : null}
             highlight={preview ? null : locked ? agentSelection : range}
+            view={view}
           />
         </article>
         {audioError && <p className="error" role="alert">{audioError}</p>}
@@ -291,9 +310,11 @@ export function Editor() {
           <span><span className="kbd">Tab</span> hand</span>
           <span><span className="kbd">⇧</span>+click bars</span>
           <span><span className="kbd">⌘K</span> ask agent</span>
+          <span><span className="kbd">⌘L</span> chat</span>
         </span>
       </footer>
     </div>
+    {chatOpen && <ChatPanel onClose={() => useEditor.getState().toggleChat()} />}
     </div>
   )
 }

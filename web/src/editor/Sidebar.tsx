@@ -23,7 +23,8 @@ export function Sidebar() {
   const history = useEditor((s) => s.history)
   const head = useEditor((s) => s.head)
   const preview = useEditor((s) => s.preview)
-  const { open, createScore, deleteScore, showRevision } = useEditor.getState()
+  const { open, startNew, deleteScore, showRevision } = useEditor.getState()
+  const screen = useEditor((s) => s.screen)
 
   return (
     <nav className="sidebar" aria-label="Workspace">
@@ -45,7 +46,7 @@ export function Sidebar() {
               <a
                 href={`/scores/${s.id}`}
                 className="side-item"
-                aria-current={s.id === scoreId ? 'page' : undefined}
+                aria-current={s.id === scoreId && screen === 'editor' ? 'page' : undefined}
                 onClick={(e) => {
                   e.preventDefault()
                   void open(s.id)
@@ -72,7 +73,12 @@ export function Sidebar() {
             </li>
           ))}
         </ul>
-        <button type="button" className="side-item new" onClick={() => void createScore()}>
+        <button
+          type="button"
+          className="side-item new"
+          aria-current={screen === 'new' ? 'page' : undefined}
+          onClick={() => void startNew()}
+        >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth="2" strokeLinecap="round" aria-hidden="true">
             <path d="M12 5v14M5 12h14" />
@@ -81,6 +87,7 @@ export function Sidebar() {
         </button>
       </section>
 
+      {screen === 'editor' && (
       <section className="side-section" aria-labelledby="history-heading">
         <h2 id="history-heading" className="side-heading">History</h2>
         <ol className="side-list">
@@ -109,6 +116,7 @@ export function Sidebar() {
           })}
         </ol>
       </section>
+      )}
     </nav>
   )
 }

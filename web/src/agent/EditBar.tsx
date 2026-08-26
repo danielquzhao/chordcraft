@@ -46,6 +46,7 @@ export function EditBar() {
   const diff = useAgent((s) => s.diff)
   const error = useAgent((s) => s.error)
   const busy = useAgent((s) => s.busy)
+  const source = useAgent((s) => s.source)
   const { close, setInstruction, setHands, submit, accept, reject, open } = useAgent.getState()
   const input = useRef<HTMLInputElement>(null)
 
@@ -54,6 +55,8 @@ export function EditBar() {
   }, [phase])
 
   if (phase === 'idle') return null
+  // Chat requests show their progress and errors in the chat; the bar only reviews them.
+  if (source === 'chat' && phase !== 'ready') return null
 
   if (phase === 'composing') {
     return (

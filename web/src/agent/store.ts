@@ -14,6 +14,8 @@ import { settle, useEditor } from '../editor/store'
 import { diffScores, type ScoreDiff } from '../score/diff'
 
 export type Phase = 'idle' | 'composing' | 'running' | 'ready' | 'failed'
+/** Where the request came from: the ⌘K bar or the chat panel. */
+export type Source = 'bar' | 'chat'
 export type Hands = 'both' | 'RH' | 'LH'
 
 type AgentState = {
@@ -29,14 +31,21 @@ type AgentState = {
   error: string | null
   /** An accept/reject request is in flight. */
   busy: boolean
+  source: Source | null
+  /** Bumped whenever a job settles or is accepted/rejected, so the chat reloads. */
+  version: number
 
   open: () => void
   close: () => void
   setInstruction: (text: string) => void
   setHands: (hands: Hands) => void
   submit: () => Promise<void>
+  /** Start an edit with a given instruction and selection (e.g. right after "From chords"). */
+  request: (instruction: string, selection: Selection) => Promise<void>
   accept: () => Promise<void>
   reject: () => Promise<void>
+  /** Send a chat message; the agent answers it or proposes an edit. */
+  submitChat: (content: string, selection: Selection) => Promise<boolean>
 }
 
 let source: EventSource | null = null
@@ -65,20 +74,29 @@ const IDLE = {
   diff: null,
   error: null,
   busy: false,
+  source: null,
 }
 
 export const useAgent = create<AgentState>()((set, get) => {
   function fail(error: string) {
     stopFollowing()
-    set({ phase: 'failed', error, busy: false })
+    set((s) => ({ phase: 'failed', error, busy: false, version: s.version + 1 }))
+  }
+
+  function settled(next: Partial<AgentState>) {
+    set((s) => ({ ...next, version: s.version + 1 }))
   }
 
   async function loadResult(jobId: string) {
     const job = await api.getEdit(jobId)
     const score = useEditor.getState().score
     if (get().jobId !== jobId) return
-    if (job.status === 'ready' && job.proposal && score) {
-      set({
+    if (job.status === 'ready' && job.proposal && score && job.proposal.ops.length === 0) {
+      // An answer, or a request the agent declined. In chat the reply is the result.
+      if (get().source === 'chat') settled({ ...IDLE })
+      else fail(job.proposal.summary || 'The agent made no changes.')
+    } else if (job.status === 'ready' && job.proposal && score) {
+      settled({
         phase: 'ready',
         proposal: job.proposal,
         diff: diffScores(score, job.proposal.score),
@@ -112,6 +130,7 @@ export const useAgent = create<AgentState>()((set, get) => {
     ...IDLE,
     instruction: '',
     hands: 'both',
+    version: 0,
 
     open: () => {
       const { phase } = get()
@@ -127,10 +146,14 @@ export const useAgent = create<AgentState>()((set, get) => {
 
     submit: async () => {
       const instruction = get().instruction.trim()
+      if (!instruction || get().phase !== 'composing') return
+      await get().request(instruction, currentSelection(get().hands))
+    },
+
+    request: async (instruction, selection) => {
       const { scoreId } = useEditor.getState()
-      if (!instruction || !scoreId || get().phase !== 'composing') return
-      const selection = currentSelection(get().hands)
-      set({ phase: 'running', selection, steps: [], error: null })
+      if (!scoreId || agentLocksScore(get().phase)) return
+      set({ ...IDLE, phase: 'running', selection, instruction, source: 'bar' })
       try {
         // The agent must see every edit made so far.
         await settle()
@@ -153,7 +176,7 @@ export const useAgent = create<AgentState>()((set, get) => {
       try {
         const result = await api.acceptEdit(jobId)
         useEditor.getState().applyAccepted(result.head, result.score, result.ops)
-        set({ ...IDLE, instruction: '' })
+        settled({ ...IDLE, instruction: '' })
       } catch (err) {
         fail(
           err instanceof ApiError && err.status === 409
@@ -169,6 +192,27 @@ export const useAgent = create<AgentState>()((set, get) => {
       set({ ...IDLE })
       if (jobId && (phase === 'running' || phase === 'ready')) {
         await api.rejectEdit(jobId).catch(() => undefined)
+      }
+      settled({})
+    },
+
+    submitChat: async (content, selection) => {
+      const { scoreId } = useEditor.getState()
+      if (!scoreId || agentLocksScore(get().phase)) return false
+      set({ ...IDLE, phase: 'running', source: 'chat', selection, instruction: content })
+      try {
+        await settle()
+        const sent = await api.sendMessage(scoreId, useEditor.getState().head, content, selection)
+        settled({ jobId: sent.job.id })
+        follow(sent.job.id)
+        return true
+      } catch (err) {
+        fail(
+          err instanceof ApiError && err.status === 409
+            ? 'The score changed while sending. Try again.'
+            : "Couldn't send the message. Check that the API and worker are running.",
+        )
+        return false
       }
     },
   }

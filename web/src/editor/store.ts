@@ -9,6 +9,7 @@ import { create } from 'zustand'
 import sketch from '../../../fixtures/autumn-sketch.json'
 import { api, ApiError, type HistoryEntry, type ScoreDetail, type ScoreSummary } from '../api/client'
 import type { Cursor } from '../input/noteEntry'
+import type { View } from '../render/engrave'
 import { applyOpsWithInverse } from '../score/applyOps'
 import type { Op, Score } from '../score/types'
 
@@ -56,6 +57,12 @@ type EditorState = {
   cursor: Cursor
   selected: string | null
   range: MeasureRange | null
+  /** Whether the agent chat panel is showing. */
+  chatOpen: boolean
+  /** Full grand staff, or a lead sheet (melody and chord symbols). */
+  view: View
+  /** The editor, or the new-score screen (blank, from chords, import). */
+  screen: 'editor' | 'new'
   /** Base note value for entry, in ticks; `dotted` lengthens it by half. */
   duration: number
   dotted: boolean
@@ -63,6 +70,8 @@ type EditorState = {
   init: () => Promise<void>
   open: (id: string, options?: { replaceUrl?: boolean }) => Promise<void>
   createScore: (score?: Score) => Promise<void>
+  /** Show the new-score screen. */
+  startNew: () => Promise<void>
   deleteScore: (id: string) => Promise<void>
   apply: (ops: Op[], next?: Next) => void
   undo: () => void
@@ -73,6 +82,8 @@ type EditorState = {
   moveTo: (next: Next) => void
   /** Extend the measure range from the cursor's measure to `measure`; null clears it. */
   selectTo: (measure: number | null) => void
+  toggleChat: () => void
+  setView: (view: View) => void
   /** Install an agent edit the server accepted, and make it undoable. */
   applyAccepted: (head: number, score: Score, ops: Op[]) => void
   setDuration: (ticks: number) => void
@@ -92,6 +103,16 @@ export function saveStatus(state: Pick<EditorState, 'saving' | 'offline' | 'pend
 
 export function newNoteId(): string {
   return `n_${crypto.randomUUID().replaceAll('-', '').slice(0, 10)}`
+}
+
+const CHAT_KEY = 'chordcraft.chatOpen'
+
+function readChatOpen(): boolean {
+  try {
+    return localStorage.getItem(CHAT_KEY) !== '0'
+  } catch {
+    return true
+  }
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | undefined
@@ -117,6 +138,8 @@ export async function settle() {
 function scoreUrl(id: string) {
   return `/scores/${id}`
 }
+
+const NEW_URL = '/new'
 
 function idFromUrl(): string | null {
   return /^\/scores\/([0-9a-f-]{36})$/.exec(window.location.pathname)?.[1] ?? null
@@ -172,6 +195,9 @@ export const useEditor = create<EditorState>()((set, get) => {
     cursor: START,
     selected: null,
     range: null,
+    chatOpen: readChatOpen(),
+    view: 'score',
+    screen: 'editor',
     duration: 480,
     dotted: false,
 
@@ -180,6 +206,7 @@ export const useEditor = create<EditorState>()((set, get) => {
       try {
         const scores = await api.listScores()
         set({ scores })
+        if (window.location.pathname === NEW_URL && scores.length) return set({ screen: 'new' })
         const wanted = idFromUrl()
         if (wanted && scores.some((s) => s.id === wanted)) return await get().open(wanted)
         if (scores.length) return await get().open(scores[0].id, { replaceUrl: true })
@@ -198,7 +225,7 @@ export const useEditor = create<EditorState>()((set, get) => {
         api.listScores(),
       ])
       load(detail)
-      set({ history, scores })
+      set({ history, scores, screen: 'editor' })
       const url = scoreUrl(id)
       if (window.location.pathname !== url) {
         if (options.replaceUrl) window.history.replaceState(null, '', url)
@@ -209,6 +236,12 @@ export const useEditor = create<EditorState>()((set, get) => {
     createScore: async (score) => {
       const detail = await api.createScore(score)
       await get().open(detail.id)
+    },
+
+    startNew: async () => {
+      await settle()
+      set({ screen: 'new', preview: null })
+      if (window.location.pathname !== NEW_URL) window.history.pushState(null, '', NEW_URL)
     },
 
     deleteScore: async (id) => {
@@ -294,6 +327,25 @@ export const useEditor = create<EditorState>()((set, get) => {
 
     moveTo: (next) => set(next),
 
+    setView: (view) => {
+      // A lead sheet shows only the melody, so the cursor stays on the right hand.
+      set((s) => ({
+        view,
+        cursor: view === 'lead' ? { ...s.cursor, staff: 'RH' } : s.cursor,
+        selected: view === 'lead' ? null : s.selected,
+      }))
+    },
+
+    toggleChat: () => {
+      const chatOpen = !get().chatOpen
+      set({ chatOpen })
+      try {
+        localStorage.setItem(CHAT_KEY, chatOpen ? '1' : '0')
+      } catch {
+        // Storage can be unavailable (private mode); the panel still toggles.
+      }
+    },
+
     selectTo: (measure) => {
       if (measure === null) return set({ range: null })
       const { cursor, range } = get()
@@ -337,8 +389,10 @@ function clampCursor() {
 
 // Browser back/forward between scores.
 window.addEventListener('popstate', () => {
+  if (window.location.pathname === NEW_URL) return useEditor.setState({ screen: 'new' })
   const id = idFromUrl()
-  if (id && id !== useEditor.getState().scoreId) void useEditor.getState().open(id)
+  const { scoreId, screen } = useEditor.getState()
+  if (id && (id !== scoreId || screen !== 'editor')) void useEditor.getState().open(id)
 })
 
 // Don't lose queued edits when the tab closes.

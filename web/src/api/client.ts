@@ -70,6 +70,15 @@ export type EditEvent =
   | { seq: number; type: 'status'; status: string }
   | { seq: number; type: 'done'; status: EditJob['status']; error: string | null }
 
+export type ChatMessage = {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  job_id: string | null
+  job_status: EditJob['status'] | null
+  created_at: string
+}
+
 export class ApiError extends Error {
   status: number
   detail: unknown
@@ -112,6 +121,23 @@ export const api = {
   acceptEdit: (id: string) =>
     request<{ head: number; score: Score; ops: Op[] }>('POST', `/edits/${id}/accept`),
   rejectEdit: (id: string) => request<void>('POST', `/edits/${id}/reject`),
+  importScore: async (file: File): Promise<ScoreDetail> => {
+    const body = new FormData()
+    body.append('file', file)
+    const res = await fetch('/api/scores/import', { method: 'POST', body })
+    if (!res.ok) {
+      const payload = await res.json().catch(() => null)
+      throw new ApiError(res.status, payload?.detail ?? payload)
+    }
+    return (await res.json()) as ScoreDetail
+  },
+  listMessages: (scoreId: string) => request<ChatMessage[]>('GET', `/scores/${scoreId}/messages`),
+  sendMessage: (scoreId: string, base: number, content: string, selection: Selection) =>
+    request<{ message: ChatMessage; job: EditJob }>('POST', `/scores/${scoreId}/messages`, {
+      base,
+      content,
+      selection,
+    }),
   /** EventSource URL for an edit's progress. */
   editEventsUrl: (id: string) => `/api/edits/${id}/events`,
 }

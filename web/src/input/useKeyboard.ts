@@ -7,7 +7,7 @@
 //   Backspace      delete note                       Esc         clear selection
 //   Cmd+Z          undo                              Cmd+Shift+Z redo
 //   Space          play / stop                       Shift+Left/Right  select measures
-//   Cmd+K          ask the agent to edit the selection
+//   Cmd+K          ask the agent to edit the selection   Cmd+L  show/hide the agent chat
 // While the agent works or a proposal is shown: Cmd+Enter accept, Cmd+Backspace reject,
 // Esc cancels a running edit.
 
@@ -42,6 +42,12 @@ export function useKeyboard(togglePlay: () => void) {
       const mod = e.metaKey || e.ctrlKey
       const key = e.key
       if (!score) return
+
+      if (mod && key.toLowerCase() === 'l') {
+        e.preventDefault()
+        state.toggleChat()
+        return
+      }
 
       if (mod && key.toLowerCase() === 'k') {
         e.preventDefault()
@@ -130,6 +136,7 @@ export function useKeyboard(togglePlay: () => void) {
             return true
           }
           case 'Tab': {
+            if (state.view === 'lead') return false // only the melody is shown
             const r = switchStaff(score, cursor)
             moveTo({ cursor: r.cursor, selected: r.select })
             return true
