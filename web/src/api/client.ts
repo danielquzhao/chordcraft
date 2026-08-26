@@ -1,7 +1,22 @@
 // Typed client for the FastAPI backend (proxied at /api by Vite). Response shapes mirror
 // api/app/scores/schemas.py.
 
+import { accessToken, sessionRejected } from '../auth/store'
 import type { Op, Score } from '../score/types'
+
+/** The API's base URL: the dev proxy locally, the API's own origin in production. */
+const API = (import.meta.env.VITE_API_URL ?? '/api').replace(/\/$/, '')
+
+async function authHeaders(): Promise<Record<string, string>> {
+  const token = await accessToken()
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+async function fail(res: Response): Promise<never> {
+  if (res.status === 401) sessionRejected()
+  const payload = await res.json().catch(() => null)
+  throw new ApiError(res.status, payload?.detail ?? payload)
+}
 
 export type ScoreSummary = {
   id: string
@@ -90,16 +105,22 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const res = await fetch(`/api${path}`, {
+async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
+  const res = await fetch(`${API}${path}`, {
     method,
-    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+    headers: {
+      ...(await authHeaders()),
+      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
+    signal,
   })
-  if (!res.ok) {
-    const payload = await res.json().catch(() => null)
-    throw new ApiError(res.status, payload?.detail ?? payload)
-  }
+  if (!res.ok) await fail(res)
   return res.status === 204 ? (undefined as T) : ((await res.json()) as T)
 }
 
@@ -124,13 +145,21 @@ export const api = {
   importScore: async (file: File): Promise<ScoreDetail> => {
     const body = new FormData()
     body.append('file', file)
-    const res = await fetch('/api/scores/import', { method: 'POST', body })
-    if (!res.ok) {
-      const payload = await res.json().catch(() => null)
-      throw new ApiError(res.status, payload?.detail ?? payload)
-    }
+    const res = await fetch(`${API}/scores/import`, {
+      method: 'POST',
+      body,
+      headers: await authHeaders(),
+    })
+    if (!res.ok) await fail(res)
     return (await res.json()) as ScoreDetail
   },
+  suggest: (scoreId: string, base: number, measure: number, staff: 'RH' | 'LH', signal?: AbortSignal) =>
+    request<{ base: number; ops: Op[] }>(
+      'POST',
+      `/scores/${scoreId}/suggest`,
+      { base, measure, staff },
+      signal,
+    ),
   listMessages: (scoreId: string) => request<ChatMessage[]>('GET', `/scores/${scoreId}/messages`),
   sendMessage: (scoreId: string, base: number, content: string, selection: Selection) =>
     request<{ message: ChatMessage; job: EditJob }>('POST', `/scores/${scoreId}/messages`, {
@@ -138,6 +167,11 @@ export const api = {
       content,
       selection,
     }),
-  /** EventSource URL for an edit's progress. */
-  editEventsUrl: (id: string) => `/api/edits/${id}/events`,
+  /** EventSource URL for an edit's progress (EventSource can't send headers, so the token
+   * rides along as a query parameter). */
+  editEventsUrl: async (id: string) => {
+    const token = await accessToken()
+    const query = token ? `?access_token=${encodeURIComponent(token)}` : ''
+    return `${API}/edits/${id}/events${query}`
+  },
 }

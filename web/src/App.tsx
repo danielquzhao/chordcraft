@@ -1,18 +1,29 @@
 import { useEffect } from 'react'
+import { SignIn } from './auth/SignIn'
+import { useAuth } from './auth/store'
 import { Editor } from './editor/Editor'
 import { NewScore } from './editor/NewScore'
 import { useEditor } from './editor/store'
 
-let started = false
+let loadedFor: string | null | undefined
 
 function App() {
   const screen = useEditor((s) => s.screen)
+  const authEnabled = useAuth((s) => s.enabled)
+  const ready = useAuth((s) => s.ready)
+  const userId = useAuth((s) => s.session?.user.id ?? null)
+  const signedIn = !authEnabled || userId !== null
+
   useEffect(() => {
-    // StrictMode runs effects twice in development; load the workspace once.
-    if (started) return
-    started = true
+    // Load the workspace once per signed-in user. StrictMode runs effects twice in
+    // development, so remember who it was loaded for.
+    if (!ready || !signedIn || loadedFor === userId) return
+    loadedFor = userId
     void useEditor.getState().init()
-  }, [])
+  }, [ready, signedIn, userId])
+
+  if (!ready) return null
+  if (!signedIn) return <SignIn />
   return screen === 'new' ? <NewScore /> : <Editor />
 }
 

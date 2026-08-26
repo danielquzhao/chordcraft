@@ -107,9 +107,11 @@ export const useAgent = create<AgentState>()((set, get) => {
     }
   }
 
-  function follow(jobId: string) {
+  async function follow(jobId: string) {
     stopFollowing()
-    source = new EventSource(api.editEventsUrl(jobId))
+    const url = await api.editEventsUrl(jobId)
+    if (get().jobId !== jobId) return
+    source = new EventSource(url)
     source.onmessage = (message) => {
       const event = JSON.parse(message.data) as EditEvent
       if (event.type === 'step') {
@@ -159,7 +161,7 @@ export const useAgent = create<AgentState>()((set, get) => {
         await settle()
         const job = await api.createEdit(scoreId, useEditor.getState().head, instruction, selection)
         set({ jobId: job.id })
-        follow(job.id)
+        void follow(job.id)
       } catch (err) {
         fail(
           err instanceof ApiError && err.status === 409
@@ -204,7 +206,7 @@ export const useAgent = create<AgentState>()((set, get) => {
         await settle()
         const sent = await api.sendMessage(scoreId, useEditor.getState().head, content, selection)
         settled({ jobId: sent.job.id })
-        follow(sent.job.id)
+        void follow(sent.job.id)
         return true
       } catch (err) {
         fail(

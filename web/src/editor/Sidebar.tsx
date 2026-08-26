@@ -1,4 +1,5 @@
 import type { HistoryEntry } from '../api/client'
+import { useAuth } from '../auth/store'
 import { useEditor } from './store'
 
 const relative = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
@@ -25,6 +26,7 @@ export function Sidebar() {
   const preview = useEditor((s) => s.preview)
   const { open, startNew, deleteScore, showRevision } = useEditor.getState()
   const screen = useEditor((s) => s.screen)
+  const email = useAuth((s) => s.session?.user.email ?? null)
 
   return (
     <nav className="sidebar" aria-label="Workspace">
@@ -116,6 +118,15 @@ export function Sidebar() {
           })}
         </ol>
       </section>
+      )}
+
+      {email && (
+        <div className="account">
+          <span className="account-email" title={email}>{email}</span>
+          <button type="button" className="tool text" onClick={() => void useAuth.getState().signOut()}>
+            Sign out
+          </button>
+        </div>
       )}
     </nav>
   )
