@@ -17,7 +17,7 @@ Design mockups: https://claude.ai/artifact/8fdpAqxGUCAXUCpg8Nm6FL (editor + empt
 | Agent | LangGraph for the flow; model calls through a provider adapter: Claude (`anthropic` SDK) or Gemini (`google-genai`), chosen by model name |
 | Import/export | music21 (server side) |
 | Auth | Supabase Auth (JWT verified by the API) |
-| Deploy | Vercel (web); Railway or Fly (API, worker, Postgres, Redis) |
+| Deploy | Vercel (web); Railway (API, worker, Postgres, Redis); see DEPLOY.md |
 
 ## Design language
 
@@ -145,6 +145,22 @@ the undo stack, so ⌘Z reverts them like any other change.
   hand are trimmed so each hand stays one line. Key, meter, tempo, title and chord symbols carry
   over.
 
+## Autocomplete, auth, deployment
+
+- **Tab autocomplete** (`api/app/agent/suggest.py`, `web/src/editor/useAutocomplete.ts`): with the
+  cursor waiting at the start of an empty bar after some music in that hand, one low-effort
+  model call proposes the bar (a single `write_bar` tool). It goes through the same tools and
+  rhythm/span checks as an edit; anything that fails isn't offered. It shows pale; Tab accepts
+  (an ordinary undoable edit, then the cursor moves on, so suggestions chain), Esc dismisses.
+  The toolbar's Suggest switch turns it off.
+- **Auth** (`api/app/auth.py`, `api/app/access.py`, `web/src/auth/`): Supabase. With
+  `SUPABASE_URL` set, every API request needs a Supabase access token (verified against the
+  project's JWKS; the legacy shared secret is also supported). Scores belong to their creator;
+  anyone else gets 404. The SSE stream takes the token as `?access_token=`. Without Supabase
+  settings, sign-in is off and everything is open (local development).
+- **Deployment** (`docs/DEPLOY.md`): Vercel for the web app; Railway for the API and worker (one
+  Docker image) plus Postgres and Redis; Supabase for sign-in.
+
 ## Database
 
 | Table | Key columns |
@@ -188,6 +204,6 @@ TypeScript API types are generated from FastAPI's OpenAPI schema.
 | M3 | Agent (sync) | LangGraph agent + validator working via a CLI/test harness on fixture scores | Done |
 | M4 | Async + diff | arq jobs, SSE progress, ghost-note diff, accept/reject/undo | Done |
 | M5 | Product surface | Chat with @-mentions, lead sheet, empty-state flows, MusicXML/MIDI import | Done |
-| M6 | Polish | Tab autocomplete, Supabase auth, deploy | |
+| M6 | Polish | Tab autocomplete, Supabase auth, deploy | Done (deploy config; see DEPLOY.md) |
 
 M3 precedes M4 on purpose: edit quality is the risky part, so prove it before wiring the queue.

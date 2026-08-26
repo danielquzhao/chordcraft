@@ -3,7 +3,8 @@
 Cursor for music composition: a piano score editor where you select measures, describe a change,
 and review the AI's edit as a ghost-note diff before accepting it.
 
-See [docs/PLAN.md](docs/PLAN.md) for the architecture and roadmap.
+See [docs/PLAN.md](docs/PLAN.md) for the architecture and roadmap, and
+[docs/DEPLOY.md](docs/DEPLOY.md) to deploy it (Vercel, Railway, Supabase).
 
 ## Layout
 
