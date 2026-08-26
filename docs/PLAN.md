@@ -17,7 +17,7 @@ Design mockups: https://claude.ai/artifact/8fdpAqxGUCAXUCpg8Nm6FL (editor + empt
 | Agent | LangGraph for the flow; model calls through a provider adapter: Claude (`anthropic` SDK) or Gemini (`google-genai`), chosen by model name |
 | Import/export | music21 (server side) |
 | Auth | Supabase Auth (JWT verified by the API) |
-| Deploy | Vercel (web); Railway (API, worker, Postgres, Redis); see DEPLOY.md |
+| Deploy | Vercel (web); Railway (API, worker, Redis); Supabase (Postgres, auth); see DEPLOY.md |
 
 ## Design language
 
@@ -159,7 +159,7 @@ the undo stack, so ⌘Z reverts them like any other change.
   anyone else gets 404. The SSE stream takes the token as `?access_token=`. Without Supabase
   settings, sign-in is off and everything is open (local development).
 - **Deployment** (`docs/DEPLOY.md`): Vercel for the web app; Railway for the API and worker (one
-  Docker image) plus Postgres and Redis; Supabase for sign-in.
+  Docker image) plus Redis; Supabase for Postgres and sign-in.
 
 ## Database
 

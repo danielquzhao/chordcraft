@@ -5,32 +5,37 @@
 | Web app (`web/`) | Vercel | Static Vite build; talks to the API at `VITE_API_URL` |
 | API (`api/`) | Railway | Docker image; runs migrations on start; health check `/health` |
 | Worker (`api/`) | Railway | Same image, start command `arq app.worker.WorkerSettings` |
-| Postgres, Redis | Railway | Add both from Railway's database templates |
-| Sign-in | Supabase | Auth only (email links, optionally GitHub) |
+| Redis | Railway | Added from Railway's database templates |
+| Postgres, sign-in | Supabase | The project's database, plus auth (email links, optionally GitHub) |
 
 Everything deploys from the GitHub repo, so pushing to `main` redeploys.
 
-## 1. Supabase (sign-in)
+## 1. Supabase (database and sign-in)
 
-1. Create a project at supabase.com.
+1. Create a project at supabase.com, in the region you'll run the API in.
 2. **Authentication → URL Configuration**: set the Site URL to your Vercel URL (you'll have it
    after step 3; `http://localhost:5173` works for local testing) and add it to the redirect
    URLs.
 3. Optional: **Authentication → Providers → GitHub** to enable "Continue with GitHub".
 4. From **Project Settings → API**, note the project URL and the publishable (anon) key.
+5. From **Connect**, copy the **Session pooler** connection string and fill in the database
+   password. (The direct connection is IPv6-only, which Railway can't reach by default.)
+6. Optional: the app talks to Postgres directly, so you can turn off the Data API under
+   **Project Settings → Data API**.
 
 The API verifies tokens with the project's published signing keys, so it only needs the
 project URL. (`SUPABASE_JWT_SECRET` is only for projects still on the legacy shared secret.)
 
-## 2. Railway (API, worker, Postgres, Redis)
+## 2. Railway (API, worker, Redis)
 
-1. New project → **Deploy from GitHub repo** → this repo. Set the service's **Root Directory**
-   to `api`. Railway reads `api/railway.json` (Dockerfile build, `/health` check).
-2. Add **Postgres** and **Redis** to the project.
-3. On the API service, set variables (use Railway's reference variables for the databases):
+1. New project → **Deploy from GitHub repo** → this repo. In the service's **Settings**, set
+   **Root Directory** to `/api` (Railway finds the Dockerfile there) and pick the region
+   closest to your Supabase project.
+2. Add **Redis** to the project.
+3. On the API service, set variables in **Variables → Raw Editor**:
 
    ```
-   DATABASE_URL=${{Postgres.DATABASE_URL}}
+   DATABASE_URL=postgresql://postgres.<project>:<password>@<region>.pooler.supabase.com:5432/postgres
    REDIS_URL=${{Redis.REDIS_URL}}
    ANTHROPIC_API_KEY=sk-ant-...
    AGENT_MODEL=claude-sonnet-5-5
@@ -39,11 +44,23 @@ project URL. (`SUPABASE_JWT_SECRET` is only for projects still on the legacy sha
    CORS_ORIGINS=["https://<your-app>.vercel.app"]
    ```
 
-   Then **Settings → Networking → Generate Domain** for a public URL.
-4. Add a second service from the same repo for the worker: Root Directory `api`, and under
-   **Settings → Config-as-code** point it at `api/railway.worker.json` (same image, start
-   command `arq app.worker.WorkerSettings`, no public domain). Give it the same variables
-   (the worker doesn't need `CORS_ORIGINS` or `SUPABASE_URL`).
+   Then **Settings → Networking → Generate Domain** (port 8080) for a public URL. Migrations
+   run on every start.
+4. Add a second service from the same repo for the worker (**Add → GitHub Repository**). In
+   its **Settings**: Root Directory `/api`, the same region, and **Custom Start Command**
+   `arq app.worker.WorkerSettings`. Don't generate a domain. Its variables can point at the
+   API service's, so keys live in one place (use your API service's name):
+
+   ```
+   DATABASE_URL=${{chordcraft-v1.DATABASE_URL}}
+   REDIS_URL=${{chordcraft-v1.REDIS_URL}}
+   ANTHROPIC_API_KEY=${{chordcraft-v1.ANTHROPIC_API_KEY}}
+   AGENT_MODEL=${{chordcraft-v1.AGENT_MODEL}}
+   AGENT_EFFORT=${{chordcraft-v1.AGENT_EFFORT}}
+   ```
+
+   Ignore Railway's "Suggested Variables" (they come from `.env.example` and point at
+   localhost). The worker's logs should show `Starting worker for 1 functions: run_edit_job`.
 
 Postgres URLs from Railway or Supabase (`postgresql://…?sslmode=require`) work as they are;
 the API converts them for asyncpg. Supabase's transaction pooler (port 6543) works too.
