@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -57,3 +57,16 @@ class RevisionDetail(BaseModel):
     message: str
     created_at: datetime
     score: Score
+
+
+class SuggestRequest(BaseModel):
+    """Suggest notes for one hand in one (empty) bar of version `base`."""
+
+    base: int
+    measure: int = Field(ge=1)
+    staff: Literal["RH", "LH"]
+
+
+class SuggestResponse(BaseModel):
+    base: int
+    ops: list[dict[str, Any]]
