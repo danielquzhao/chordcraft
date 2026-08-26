@@ -32,6 +32,9 @@ const CHORD_FONT = 'Geist, ui-sans-serif, system-ui, sans-serif'
 const STAFF_GAP = 96
 /** Vertical space each grand-staff system takes, including room for chord symbols. */
 const SYSTEM_HEIGHT = 250
+/** A lead sheet has one staff per system, with room for large chord symbols. */
+const LEAD_SYSTEM_HEIGHT = 150
+const LEAD_CHORD_FONT = "'Instrument Serif', Georgia, serif"
 const TOP = 24
 const MIN_MEASURE = 150
 const PER_PIECE = 34
@@ -80,10 +83,10 @@ function vfKey(pitch: string): string {
 }
 
 /** Rough width a measure needs, from how many note values its busiest staff shows. */
-function naturalWidth(measure: Measure, meta: Meta): number {
+function naturalWidth(measure: Measure, meta: Meta, staves: Staff[]): number {
   const pieces = (staff: Staff) =>
     staffEvents(measure, staff, meta).reduce((sum, e) => sum + decompose(e.dur, meta.ppq).length, 0)
-  return Math.max(MIN_MEASURE, 40 + PER_PIECE * Math.max(pieces('RH'), pieces('LH')))
+  return Math.max(MIN_MEASURE, 40 + PER_PIECE * Math.max(...staves.map(pieces)))
 }
 
 function beginWidth(meta: Meta, withTime: boolean): number {
@@ -91,18 +94,19 @@ function beginWidth(meta: Meta, withTime: boolean): number {
 }
 
 /** Greedily pack measures into systems, then stretch each full system to the page width. */
-function planSystems(score: Score, width: number): { n: number; width: number }[][] {
+function planSystems(score: Score, width: number, staves: Staff[]): { n: number; width: number }[][] {
   const systems: { n: number; width: number }[][] = []
   let current: { n: number; width: number }[] = []
   let used = 0
   score.measures.forEach((m) => {
     const first = current.length === 0
-    const w = naturalWidth(m, score.meta) + (first ? beginWidth(score.meta, systems.length === 0) : 0)
+    const w =
+      naturalWidth(m, score.meta, staves) + (first ? beginWidth(score.meta, systems.length === 0) : 0)
     if (!first && used + w > width) {
       systems.push(current)
       current = []
       used = 0
-      const lead = naturalWidth(m, score.meta) + beginWidth(score.meta, false)
+      const lead = naturalWidth(m, score.meta, staves) + beginWidth(score.meta, false)
       current.push({ n: m.n, width: lead })
       used = lead
       return
@@ -198,27 +202,37 @@ function buildGhosts(notes: Note[], staff: Staff, meta: Meta): Tickable[] | null
   return tickables
 }
 
-function drawText(ctx: RenderContext, text: string, x: number, y: number, size: number, weight: number) {
+function drawText(
+  ctx: RenderContext, text: string, x: number, y: number, size: number, weight: number,
+  font = CHORD_FONT,
+) {
   ctx.save()
-  ctx.setFont(CHORD_FONT, size, weight)
+  ctx.setFont(font, size, weight)
   ctx.fillText(text, x, y)
   ctx.restore()
 }
 
+export type View = 'score' | 'lead'
+
 /**
- * Draw the score. `ghosts` (measure number → notes) adds removed notes from a proposed edit
- * as faded orange notes alongside the new ones.
+ * Draw the score: the grand staff, or for a lead sheet just the melody with large chord
+ * symbols. `ghosts` (measure number → notes) adds removed notes from a proposed edit as
+ * faded orange notes alongside the new ones.
  */
 export function engrave(
   container: HTMLDivElement,
   score: Score,
   width: number,
   ghosts?: Map<number, Note[]>,
+  view: View = 'score',
 ): Layout {
   container.innerHTML = ''
   const { meta } = score
-  const systems = planSystems(score, width)
-  const height = TOP + systems.length * SYSTEM_HEIGHT
+  const lead = view === 'lead'
+  const parts: Staff[] = lead ? ['RH'] : ['RH', 'LH']
+  const systemHeight = lead ? LEAD_SYSTEM_HEIGHT : SYSTEM_HEIGHT
+  const systems = planSystems(score, width, parts)
+  const height = TOP + systems.length * systemHeight
 
   const renderer = new Renderer(container, Renderer.Backends.SVG)
   renderer.resize(width, height)
@@ -231,54 +245,48 @@ export function engrave(
   const lastN = score.measures.length
 
   systems.forEach((system, s) => {
-    const y = TOP + s * SYSTEM_HEIGHT + 30
+    const y = TOP + s * systemHeight + (lead ? 40 : 30)
     let x = 0
     system.forEach(({ n, width: w }, i) => {
       const measure = score.measures[n - 1]
       const treble = new Stave(x, y, w)
-      const bass = new Stave(x, y + STAFF_GAP, w)
+      const bass = lead ? null : new Stave(x, y + STAFF_GAP, w)
+      const drawn = bass ? [treble, bass] : [treble]
       if (i === 0) {
         treble.addClef('treble').addKeySignature(key)
-        bass.addClef('bass').addKeySignature(key)
-        if (s === 0) {
-          treble.addTimeSignature(`${meta.time[0]}/${meta.time[1]}`)
-          bass.addTimeSignature(`${meta.time[0]}/${meta.time[1]}`)
+        bass?.addClef('bass').addKeySignature(key)
+        if (s === 0) drawn.forEach((st) => st.addTimeSignature(`${meta.time[0]}/${meta.time[1]}`))
+      }
+      if (n === lastN) drawn.forEach((st) => st.setEndBarType(BarlineType.END))
+      Stave.formatBegModifiers(drawn)
+      drawn.forEach((st) => st.setContext(ctx).draw())
+
+      if (i === 0) drawText(ctx, String(n), x + 2, treble.getYForLine(0) - 14, 11, 400)
+      if (bass) {
+        if (i === 0) {
+          new StaveConnector(treble, bass).setType('brace').setContext(ctx).draw()
+          new StaveConnector(treble, bass).setType('singleLeft').setContext(ctx).draw()
         }
+        new StaveConnector(treble, bass)
+          .setType(n === lastN ? 'boldDoubleRight' : 'singleRight')
+          .setContext(ctx)
+          .draw()
       }
-      if (n === lastN) {
-        treble.setEndBarType(BarlineType.END)
-        bass.setEndBarType(BarlineType.END)
-      }
-      Stave.formatBegModifiers([treble, bass])
-      treble.setContext(ctx).draw()
-      bass.setContext(ctx).draw()
 
-      if (i === 0) {
-        new StaveConnector(treble, bass).setType('brace').setContext(ctx).draw()
-        new StaveConnector(treble, bass).setType('singleLeft').setContext(ctx).draw()
-        drawText(ctx, String(n), x + 2, treble.getYForLine(0) - 14, 11, 400)
-      }
-      new StaveConnector(treble, bass)
-        .setType(n === lastN ? 'boldDoubleRight' : 'singleRight')
-        .setContext(ctx)
-        .draw()
-
-      const staves: Record<Staff, Stave> = { RH: treble, LH: bass }
-      const built = {
-        RH: buildStaff(staffEvents(measure, 'RH', meta), 'RH', meta),
-        LH: buildStaff(staffEvents(measure, 'LH', meta), 'LH', meta),
-      }
+      const staves: Partial<Record<Staff, Stave>> = { RH: treble, LH: bass ?? undefined }
+      const built = Object.fromEntries(
+        parts.map((staff) => [staff, buildStaff(staffEvents(measure, staff, meta), staff, meta)]),
+      ) as Record<Staff, Built>
       const newVoice = (tickables: Tickable[]) =>
         new Voice({ numBeats: meta.time[0], beatValue: meta.time[1] })
           .setMode(VoiceMode.SOFT)
           .addTickables(tickables)
       const ghostNotes = ghosts?.get(n) ?? []
-      const ghostVoices = {
-        RH: buildGhosts(ghostNotes.filter((x) => x.staff === 'RH'), 'RH', meta),
-        LH: buildGhosts(ghostNotes.filter((x) => x.staff === 'LH'), 'LH', meta),
-      }
+      const ghostVoices = Object.fromEntries(
+        parts.map((staff) => [staff, buildGhosts(ghostNotes.filter((x) => x.staff === staff), staff, meta)]),
+      ) as Record<Staff, Tickable[] | null>
       const formatter = new Formatter()
-      const voices = (['RH', 'LH'] as const).map((staff) => {
+      const voices = parts.map((staff) => {
         const main = newVoice(built[staff].notes)
         const ghost = ghostVoices[staff] && newVoice(ghostVoices[staff])
         const onStaff = ghost ? [main, ghost] : [main]
@@ -291,14 +299,15 @@ export function engrave(
         Math.max(40, treble.getNoteEndX() - treble.getNoteStartX() - 14),
       )
 
-      ;(['RH', 'LH'] as const).forEach((staff, k) => {
+      parts.forEach((staff, k) => {
+        const stave = staves[staff]!
         // generateBeams breaks beams at rests itself, so pass every note in order.
         const beams = Beam.generateBeams(built[staff].notes)
-        voices[k].main.draw(ctx, staves[staff])
+        voices[k].main.draw(ctx, stave)
         beams.forEach((b) => b.setContext(ctx).draw())
         built[staff].ties.forEach((t) => t.setContext(ctx).draw())
         if (voices[k].ghost) {
-          voices[k].ghost.draw(ctx, staves[staff])
+          voices[k].ghost.draw(ctx, stave)
           for (const t of ghostVoices[staff] ?? []) t.getSVGElement()?.setAttribute('data-ghost', '')
         }
 
@@ -316,7 +325,11 @@ export function engrave(
       })
 
       if (measure.chord) {
-        drawText(ctx, measure.chord, treble.getNoteStartX(), treble.getYForLine(0) - 30, 15, 600)
+        if (lead) {
+          drawText(ctx, measure.chord, treble.getNoteStartX(), treble.getYForLine(0) - 34, 26, 400, LEAD_CHORD_FONT)
+        } else {
+          drawText(ctx, measure.chord, treble.getNoteStartX(), treble.getYForLine(0) - 30, 15, 600)
+        }
       }
 
       layout.measures.push({
@@ -325,7 +338,10 @@ export function engrave(
         noteEndX: treble.getNoteEndX(),
         staves: {
           RH: { top: treble.getYForLine(0), bottom: treble.getYForLine(4) },
-          LH: { top: bass.getYForLine(0), bottom: bass.getYForLine(4) },
+          // A lead sheet has no bass staff; point LH at the melody so geometry still works.
+          LH: bass
+            ? { top: bass.getYForLine(0), bottom: bass.getYForLine(4) }
+            : { top: treble.getYForLine(0), bottom: treble.getYForLine(4) },
         },
       })
       x += w

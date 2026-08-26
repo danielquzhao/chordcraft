@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 're
 import { useEditor } from '../editor/store'
 import type { ScoreDiff } from '../score/diff'
 import type { Score } from '../score/types'
-import { engrave, markNotes, type Layout, type MeasureBox } from './engrave'
+import { engrave, markNotes, type Layout, type MeasureBox, type View } from './engrave'
 import { cursorLine, hitTest } from './geometry'
 
 /** VexFlow measures glyphs while laying out, so wait for the music font before the first draw. */
@@ -38,6 +38,7 @@ type Props = {
   diff?: ScoreDiff | null
   /** Measures to outline (the selection, or what the agent is editing). */
   highlight?: { start: number; end: number } | null
+  view?: View
 }
 
 /** One outline per system covering the highlighted measures on it. */
@@ -55,7 +56,7 @@ function highlightBoxes(layout: Layout, range: { start: number; end: number }) {
   })
 }
 
-export function ScoreView({ score, readOnly, hostRef, diff, highlight }: Props) {
+export function ScoreView({ score, readOnly, hostRef, diff, highlight, view = 'score' }: Props) {
   const cursor = useEditor((s) => s.cursor)
   const selected = useEditor((s) => s.selected)
   const moveTo = useEditor((s) => s.moveTo)
@@ -67,8 +68,8 @@ export function ScoreView({ score, readOnly, hostRef, diff, highlight }: Props) 
 
   useLayoutEffect(() => {
     if (!hostRef.current || !fontReady || width < 200) return
-    setLayout(engrave(hostRef.current, score, width, diff?.removed))
-  }, [hostRef, score, width, fontReady, diff])
+    setLayout(engrave(hostRef.current, score, width, diff?.removed, view))
+  }, [hostRef, score, width, fontReady, diff, view])
 
   useLayoutEffect(() => {
     if (hostRef.current) markNotes(hostRef.current, 'is-added', diff?.added ?? [])
