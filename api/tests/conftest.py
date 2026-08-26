@@ -14,6 +14,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app import models  # noqa: F401  (registers tables)
+from app.auth import AuthConfig, get_auth_config
 from app.db import Base, get_session
 from app.main import app
 from app.queue import get_queue
@@ -86,6 +87,8 @@ async def client(engine, redis, queue) -> AsyncIterator[AsyncClient]:
             yield session
 
     app.dependency_overrides[get_session] = session_override
+    # Tests don't depend on a developer's api/.env: auth is off unless a test turns it on.
+    app.dependency_overrides[get_auth_config] = lambda: AuthConfig()
     app.dependency_overrides[get_redis] = lambda: redis
     app.dependency_overrides[get_queue] = lambda: queue
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
