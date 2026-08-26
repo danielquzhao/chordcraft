@@ -26,6 +26,8 @@ import type { Measure, Meta, Note, Score, Staff } from '../score/types'
 const INK = '#1c1b18'
 /** Removed notes in a proposed edit (matches --removed in index.css). */
 const REMOVED = '#b4531c'
+/** Autocomplete suggestions: a pale version of --added. */
+const SUGGESTED = '#9fb2e6'
 const CHORD_FONT = 'Geist, ui-sans-serif, system-ui, sans-serif'
 
 /** Distance from the treble stave's y to the bass stave's y. */
@@ -127,7 +129,7 @@ function planSystems(score: Score, width: number, staves: Staff[]): { n: number;
 
 type Built = { notes: StaveNote[]; ties: StaveTie[]; boxes: { event: StaffEvent; note: StaveNote }[] }
 
-function buildStaff(events: StaffEvent[], staff: Staff, meta: Meta): Built {
+function buildStaff(events: StaffEvent[], staff: Staff, meta: Meta, faded?: Set<string>): Built {
   const built: Built = { notes: [], ties: [], boxes: [] }
   const length = (meta.time[0] * meta.ppq * 4) / meta.time[1]
   for (const event of events) {
@@ -142,6 +144,7 @@ function buildStaff(events: StaffEvent[], staff: Staff, meta: Meta): Built {
       continue
     }
     const keys = isRest ? [REST_KEY[staff]] : event.notes.map((n) => vfKey(n.pitch))
+    const pale = !isRest && !!faded && event.notes.every((n) => faded.has(n.id))
     const pieces = decompose(event.dur, meta.ppq).map((token) => {
       const note = new StaveNote({
         keys,
@@ -151,6 +154,10 @@ function buildStaff(events: StaffEvent[], staff: Staff, meta: Meta): Built {
         autoStem: true,
       })
       if (token.dots) Dot.buildAndAttach([note], { all: true })
+      if (pale) {
+        note.setStyle({ fillStyle: SUGGESTED, strokeStyle: SUGGESTED })
+        note.setLedgerLineStyle({ fillStyle: SUGGESTED, strokeStyle: SUGGESTED })
+      }
       return note
     })
     if (!pieces.length) continue
@@ -225,6 +232,8 @@ export function engrave(
   width: number,
   ghosts?: Map<number, Note[]>,
   view: View = 'score',
+  /** Note ids to draw pale (autocomplete suggestions), stems and beams included. */
+  faded?: Set<string>,
 ): Layout {
   container.innerHTML = ''
   const { meta } = score
@@ -275,7 +284,7 @@ export function engrave(
 
       const staves: Partial<Record<Staff, Stave>> = { RH: treble, LH: bass ?? undefined }
       const built = Object.fromEntries(
-        parts.map((staff) => [staff, buildStaff(staffEvents(measure, staff, meta), staff, meta)]),
+        parts.map((staff) => [staff, buildStaff(staffEvents(measure, staff, meta), staff, meta, faded)]),
       ) as Record<Staff, Built>
       const newVoice = (tickables: Tickable[]) =>
         new Voice({ numBeats: meta.time[0], beatValue: meta.time[1] })
@@ -303,6 +312,12 @@ export function engrave(
         const stave = staves[staff]!
         // generateBeams breaks beams at rests itself, so pass every note in order.
         const beams = Beam.generateBeams(built[staff].notes)
+        for (const beam of beams) {
+          // A beam joining only suggested notes is pale too.
+          if (beam.getNotes().every((n) => n.getStyle()?.fillStyle === SUGGESTED)) {
+            beam.setStyle({ fillStyle: SUGGESTED, strokeStyle: SUGGESTED })
+          }
+        }
         voices[k].main.draw(ctx, stave)
         beams.forEach((b) => b.setContext(ctx).draw())
         built[staff].ties.forEach((t) => t.setContext(ctx).draw())

@@ -8,6 +8,7 @@
 //   Cmd+Z          undo                              Cmd+Shift+Z redo
 //   Space          play / stop                       Shift+Left/Right  select measures
 //   Cmd+K          ask the agent to edit the selection   Cmd+L  show/hide the agent chat
+//   Tab            accept a suggested bar (when one is showing)
 // While the agent works or a proposal is shown: Cmd+Enter accept, Cmd+Backspace reject,
 // Esc cancels a running edit.
 
@@ -65,6 +66,21 @@ export function useKeyboard(togglePlay: () => void) {
         else return
         e.preventDefault()
         return
+      }
+
+      // A suggested bar is showing: Tab takes it, Esc drops it, anything else carries on as
+      // usual (and the suggestion clears as soon as the score or cursor changes).
+      if (state.suggestion && !mod) {
+        if (key === 'Tab' && !e.shiftKey) {
+          e.preventDefault()
+          state.acceptSuggestion()
+          return
+        }
+        if (key === 'Escape') {
+          e.preventDefault()
+          state.setSuggestion(null)
+          return
+        }
       }
 
       // An old version from History is read-only: only playback and leaving the preview work.

@@ -8,6 +8,7 @@ import { agentLocksScore, useAgent } from '../agent/store'
 import { ScoreView } from '../render/ScoreView'
 import type { Staff } from '../score/types'
 import { Sidebar } from './Sidebar'
+import { useAutocomplete } from './useAutocomplete'
 import { DURATIONS, saveStatus, useEditor, type SaveStatus } from './store'
 import './editor.css'
 
@@ -69,6 +70,8 @@ export function Editor() {
   const range = useEditor((s) => s.range)
   const chatOpen = useEditor((s) => s.chatOpen)
   const view = useEditor((s) => s.view)
+  const suggestion = useEditor((s) => s.suggestion)
+  const suggestOn = useEditor((s) => s.suggestOn)
   const agentPhase = useAgent((s) => s.phase)
   const agentSelection = useAgent((s) => s.selection)
   const proposal = useAgent((s) => s.proposal)
@@ -112,10 +115,12 @@ export function Editor() {
   }, [playState])
 
   useKeyboard(togglePlay)
+  useAutocomplete()
 
   // What's on the page: an old version, the agent's proposal, or the current score.
   const reviewing = agentPhase === 'ready' && proposal !== null
-  const score = preview?.score ?? (reviewing ? proposal.score : current)
+  const score =
+    preview?.score ?? (reviewing ? proposal.score : (suggestion?.score ?? current))
   if (!score) {
     return (
       <div className="app">
@@ -269,6 +274,16 @@ export function Editor() {
 
         <button
           type="button"
+          className="tool text"
+          aria-pressed={suggestOn}
+          title="Suggest the next bar as you write (Tab to accept)"
+          onClick={() => useEditor.getState().toggleSuggest()}
+        >
+          Suggest <span className="kbd">Tab</span>
+        </button>
+
+        <button
+          type="button"
           className="tool text ask"
           onClick={() => useAgent.getState().open()}
           disabled={locked}
@@ -292,6 +307,7 @@ export function Editor() {
             diff={reviewing && !preview ? diff : null}
             highlight={preview ? null : locked ? agentSelection : range}
             view={view}
+            suggested={suggestion && !preview && !reviewing ? suggestion.ids : null}
           />
         </article>
         {audioError && <p className="error" role="alert">{audioError}</p>}
@@ -299,6 +315,11 @@ export function Editor() {
 
       <footer className="statusbar">
         <span>
+          {suggestion ? (
+            <span className="suggest-hint">
+              Suggested bar · <span className="kbd">Tab</span> accept · <span className="kbd">Esc</span> dismiss ·{' '}
+            </span>
+          ) : null}
           m. {cursor.measure} · beat {beat} · {HAND[cursor.staff]}
           {selectedPitch && <> · <strong>{selectedPitch}</strong> selected</>}
         </span>

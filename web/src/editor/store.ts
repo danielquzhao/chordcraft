@@ -34,6 +34,17 @@ export type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'offline'
 
 export type Preview = { number: number; message: string; score: Score }
 
+/** A suggested next bar (Tab autocomplete), shown faded until accepted. */
+export type Suggestion = {
+  base: number
+  measure: number
+  staff: 'RH' | 'LH'
+  ops: Op[]
+  /** The score with the suggestion applied, for display. */
+  score: Score
+  ids: Set<string>
+}
+
 /** Measures selected with Shift+click or Shift+arrows, inclusive. */
 export type MeasureRange = { start: number; end: number }
 
@@ -59,6 +70,9 @@ type EditorState = {
   range: MeasureRange | null
   /** Whether the agent chat panel is showing. */
   chatOpen: boolean
+  suggestion: Suggestion | null
+  /** Tab autocomplete on/off (each suggestion is a model call). */
+  suggestOn: boolean
   /** Full grand staff, or a lead sheet (melody and chord symbols). */
   view: View
   /** The editor, or the new-score screen (blank, from chords, import). */
@@ -83,6 +97,9 @@ type EditorState = {
   /** Extend the measure range from the cursor's measure to `measure`; null clears it. */
   selectTo: (measure: number | null) => void
   toggleChat: () => void
+  setSuggestion: (suggestion: Suggestion | null) => void
+  acceptSuggestion: () => void
+  toggleSuggest: () => void
   setView: (view: View) => void
   /** Install an agent edit the server accepted, and make it undoable. */
   applyAccepted: (head: number, score: Score, ops: Op[]) => void
@@ -106,13 +123,28 @@ export function newNoteId(): string {
 }
 
 const CHAT_KEY = 'chordcraft.chatOpen'
+const SUGGEST_KEY = 'chordcraft.suggestOn'
+
+// Per-browser preferences. Storage can be unavailable (private mode); defaults then apply.
+function readFlag(key: string, fallback: boolean): boolean {
+  try {
+    const value = localStorage.getItem(key)
+    return value === null ? fallback : value === '1'
+  } catch {
+    return fallback
+  }
+}
+
+function writeFlag(key: string, value: boolean) {
+  try {
+    localStorage.setItem(key, value ? '1' : '0')
+  } catch {
+    // Not persisted; the setting still applies for this session.
+  }
+}
 
 function readChatOpen(): boolean {
-  try {
-    return localStorage.getItem(CHAT_KEY) !== '0'
-  } catch {
-    return true
-  }
+  return readFlag(CHAT_KEY, true)
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | undefined
@@ -196,6 +228,8 @@ export const useEditor = create<EditorState>()((set, get) => {
     selected: null,
     range: null,
     chatOpen: readChatOpen(),
+    suggestion: null,
+    suggestOn: readFlag(SUGGEST_KEY, true),
     view: 'score',
     screen: 'editor',
     duration: 480,
@@ -336,14 +370,30 @@ export const useEditor = create<EditorState>()((set, get) => {
       }))
     },
 
+    setSuggestion: (suggestion) => set({ suggestion }),
+
+    acceptSuggestion: () => {
+      const { suggestion, score, cursor } = get()
+      if (!suggestion || !score) return
+      // Tab moves on to the next bar, where the next suggestion can appear.
+      const next = Math.min(score.measures.length, suggestion.measure + 1)
+      get().apply(suggestion.ops, {
+        cursor: { ...cursor, measure: next, staff: suggestion.staff, tick: 0 },
+        selected: null,
+      })
+      set({ suggestion: null })
+    },
+
+    toggleSuggest: () => {
+      const suggestOn = !get().suggestOn
+      set({ suggestOn, suggestion: null })
+      writeFlag(SUGGEST_KEY, suggestOn)
+    },
+
     toggleChat: () => {
       const chatOpen = !get().chatOpen
       set({ chatOpen })
-      try {
-        localStorage.setItem(CHAT_KEY, chatOpen ? '1' : '0')
-      } catch {
-        // Storage can be unavailable (private mode); the panel still toggles.
-      }
+      writeFlag(CHAT_KEY, chatOpen)
     },
 
     selectTo: (measure) => {

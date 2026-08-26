@@ -39,6 +39,8 @@ type Props = {
   /** Measures to outline (the selection, or what the agent is editing). */
   highlight?: { start: number; end: number } | null
   view?: View
+  /** Ids of autocomplete notes, drawn pale. */
+  suggested?: Set<string> | null
 }
 
 /** One outline per system covering the highlighted measures on it. */
@@ -56,7 +58,7 @@ function highlightBoxes(layout: Layout, range: { start: number; end: number }) {
   })
 }
 
-export function ScoreView({ score, readOnly, hostRef, diff, highlight, view = 'score' }: Props) {
+export function ScoreView({ score, readOnly, hostRef, diff, highlight, view = 'score', suggested }: Props) {
   const cursor = useEditor((s) => s.cursor)
   const selected = useEditor((s) => s.selected)
   const moveTo = useEditor((s) => s.moveTo)
@@ -68,12 +70,13 @@ export function ScoreView({ score, readOnly, hostRef, diff, highlight, view = 's
 
   useLayoutEffect(() => {
     if (!hostRef.current || !fontReady || width < 200) return
-    setLayout(engrave(hostRef.current, score, width, diff?.removed, view))
-  }, [hostRef, score, width, fontReady, diff, view])
+    setLayout(engrave(hostRef.current, score, width, diff?.removed, view, suggested ?? undefined))
+  }, [hostRef, score, width, fontReady, diff, view, suggested])
 
   useLayoutEffect(() => {
     if (hostRef.current) markNotes(hostRef.current, 'is-added', diff?.added ?? [])
   }, [hostRef, layout, diff])
+
 
   useLayoutEffect(() => {
     const ids = selected && !readOnly ? [selected] : []
