@@ -30,10 +30,17 @@ cp .env.example .env
 .venv/bin/uvicorn app.main:app --reload
 ```
 
-Worker (from `api/`), needed for agent edits (⌘K in the editor):
+Worker (from `api/`), needed for agent edits (⌘K) and the chat panel:
 
 ```bash
 .venv/bin/arq app.worker.WorkerSettings
+```
+
+To restart it automatically when backend code changes (arq's own `--watch` keeps old modules
+loaded):
+
+```bash
+.venv/bin/watchfiles --filter python ".venv/bin/arq app.worker.WorkerSettings" app
 ```
 
 Web (from `web/`):

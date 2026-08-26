@@ -129,6 +129,22 @@ both, right or left), progress streams in, and the proposal shows as a ghost-not
 (⌘⌫). Manual editing is locked while an edit runs or is under review. Accepted edits go on
 the undo stack, so ⌘Z reverts them like any other change.
 
+## Chat, lead sheet, new scores
+
+- **Chat** (`api/app/chat/`, `web/src/agent/ChatPanel.tsx`): a conversation per score. Each
+  message runs as an edit job with the last few messages as history, so follow-ups work. A
+  question gets a plain-text answer (no edit); a change comes back as the same ghost-note
+  proposal as ⌘K. `@m.5–8`, `@m3`, `@LH`, `@RH`, `@all` set the scope; otherwise the selection
+  or the whole score. ⌘L shows or hides the panel.
+- **Lead sheet**: the renderer's `lead` view draws only the melody staff with large chord
+  symbols; the cursor stays on the right hand there.
+- **New score** (`/new`): Blank (key, meter, tempo, length, with a live preview), From chords
+  (a typed progression; the agent writes the part as a reviewable draft), or Import.
+- **Import** (`api/app/scores/importer.py`, music21): MusicXML or MIDI. Two parts map to the
+  hands; a single part splits at middle C. Timing snaps to a 32nd grid; overlapping notes in a
+  hand are trimmed so each hand stays one line. Key, meter, tempo, title and chord symbols carry
+  over.
+
 ## Database
 
 | Table | Key columns |
@@ -136,7 +152,7 @@ the undo stack, so ⌘Z reverts them like any other change.
 | `scores` | id, owner_id, title, head (current version number), created_at, updated_at |
 | `revisions` | id, score_id, number, author (`user`/`agent`), kind (`create`/`edit`/`restore`), message, snapshot JSONB, ops JSONB, changes JSONB, created_at |
 | `edit_jobs` | id, score_id, base (version), instruction, selection JSONB, status (`queued`/`running`/`ready`/`failed`/`accepted`/`rejected`), model, proposal JSONB, error, accepted_revision |
-| `messages` | id, score_id, role, content, job_id |
+| `messages` | id, score_id, role (`user`/`assistant`), content, job_id (chat requests run as edit jobs with `source = chat`) |
 
 - Revisions are immutable: every save appends one with a full snapshot (a 32-bar piano score is a
   few KB), so restore is one read and a saved version number always means the same content. That
@@ -171,7 +187,7 @@ TypeScript API types are generated from FastAPI's OpenAPI schema.
 | M2 | Persistence | Scores + revisions in Postgres, autosave, History panel with restore | Done |
 | M3 | Agent (sync) | LangGraph agent + validator working via a CLI/test harness on fixture scores | Done |
 | M4 | Async + diff | arq jobs, SSE progress, ghost-note diff, accept/reject/undo | Done |
-| M5 | Product surface | Chat with @-mentions, lead sheet, empty-state flows, MusicXML/MIDI import | |
+| M5 | Product surface | Chat with @-mentions, lead sheet, empty-state flows, MusicXML/MIDI import | Done |
 | M6 | Polish | Tab autocomplete, Supabase auth, deploy | |
 
 M3 precedes M4 on purpose: edit quality is the risky part, so prove it before wiring the queue.
