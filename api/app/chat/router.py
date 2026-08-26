@@ -7,7 +7,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.access import score_for
 from app.agent.context import Selection
+from app.auth import CurrentUser
 from app.db import get_session
 from app.edits import service as edits
 from app.edits.router import job_view
@@ -43,9 +45,9 @@ class Sent(BaseModel):
 
 
 @router.get("/scores/{score_id}/messages")
-async def list_messages(score_id: uuid.UUID, session: Session) -> list[Message]:
+async def list_messages(score_id: uuid.UUID, session: Session, user: CurrentUser) -> list[Message]:
     try:
-        await scores.get_score(session, score_id)
+        await score_for(session, score_id, user)
     except scores.NotFound:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail={"code": "not_found"}) from None
     rows = await session.execute(
@@ -75,9 +77,11 @@ async def send_message(
     body: SendMessage,
     session: Session,
     queue: Annotated[Queue, Depends(get_queue)],
+    user: CurrentUser,
 ) -> Sent:
     """Post a chat message; the agent answers it (or proposes an edit) as a background job."""
     try:
+        await score_for(session, score_id, user)
         job = await edits.create_job(
             session, score_id, body.base, body.content, body.selection, source="chat"
         )

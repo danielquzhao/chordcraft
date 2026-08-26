@@ -32,9 +32,11 @@ def blank_score() -> Score:
     return Score(measures=[Measure(n=n) for n in range(1, 5)])
 
 
-async def create_score(session: AsyncSession, score: Score | None) -> tuple[ScoreRow, Score]:
+async def create_score(
+    session: AsyncSession, score: Score | None, owner_id: str | None = None
+) -> tuple[ScoreRow, Score]:
     score = score or blank_score()
-    row = ScoreRow(title=score.meta.title, head=1)
+    row = ScoreRow(title=score.meta.title, head=1, owner_id=owner_id)
     session.add(row)
     await session.flush()
     session.add(

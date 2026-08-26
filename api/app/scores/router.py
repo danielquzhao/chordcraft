@@ -1,3 +1,4 @@
+import logging
 import uuid
 from typing import Annotated
 
@@ -6,6 +7,11 @@ from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.access import score_for
+from app.agent.model import Model, make_model
+from app.agent.suggest import suggest_bar
+from app.auth import CurrentUser
+from app.config import get_settings
 from app.db import get_session
 from app.models import ScoreRow
 from app.score.model import Score
@@ -21,9 +27,12 @@ from app.scores.schemas import (
     SaveEdit,
     ScoreDetail,
     ScoreSummary,
+    SuggestRequest,
+    SuggestResponse,
 )
 
 router = APIRouter(prefix="/scores", tags=["scores"])
+log = logging.getLogger(__name__)
 Session = Annotated[AsyncSession, Depends(get_session)]
 
 
@@ -47,19 +56,22 @@ def _summary(row: ScoreRow) -> ScoreSummary:
 
 
 @router.get("")
-async def list_scores(session: Session) -> list[ScoreSummary]:
-    rows = await session.scalars(select(ScoreRow).order_by(ScoreRow.updated_at.desc()))
+async def list_scores(session: Session, user: CurrentUser) -> list[ScoreSummary]:
+    query = select(ScoreRow).order_by(ScoreRow.updated_at.desc())
+    if user.id is not None:
+        query = query.where(ScoreRow.owner_id == user.id)
+    rows = await session.scalars(query)
     return [_summary(row) for row in rows]
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-async def create_score(body: CreateScore, session: Session) -> ScoreDetail:
-    row, score = await service.create_score(session, body.score)
+async def create_score(body: CreateScore, session: Session, user: CurrentUser) -> ScoreDetail:
+    row, score = await service.create_score(session, body.score, owner_id=user.id)
     return ScoreDetail(**_summary(row).model_dump(), score=score)
 
 
 @router.post("/import", status_code=status.HTTP_201_CREATED)
-async def import_file(file: UploadFile, session: Session) -> ScoreDetail:
+async def import_file(file: UploadFile, session: Session, user: CurrentUser) -> ScoreDetail:
     """Create a score from an uploaded MusicXML or MIDI file."""
     data = await file.read(MAX_BYTES + 1)
     try:
@@ -70,14 +82,14 @@ async def import_file(file: UploadFile, session: Session) -> ScoreDetail:
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"code": "import_failed", "message": str(err)},
         ) from None
-    row, score = await service.create_score(session, score)
+    row, score = await service.create_score(session, score, owner_id=user.id)
     return ScoreDetail(**_summary(row).model_dump(), score=score)
 
 
 @router.get("/{score_id}")
-async def get_score(score_id: uuid.UUID, session: Session) -> ScoreDetail:
+async def get_score(score_id: uuid.UUID, session: Session, user: CurrentUser) -> ScoreDetail:
     try:
-        row = await service.get_score(session, score_id)
+        row = await score_for(session, score_id, user)
         score = await service.head_score(session, row)
     except service.NotFound:
         raise _not_found() from None
@@ -85,9 +97,9 @@ async def get_score(score_id: uuid.UUID, session: Session) -> ScoreDetail:
 
 
 @router.delete("/{score_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_score(score_id: uuid.UUID, session: Session) -> Response:
+async def delete_score(score_id: uuid.UUID, session: Session, user: CurrentUser) -> Response:
     try:
-        row = await service.get_score(session, score_id)
+        row = await score_for(session, score_id, user)
     except service.NotFound:
         raise _not_found() from None
     await session.delete(row)
@@ -96,8 +108,11 @@ async def delete_score(score_id: uuid.UUID, session: Session) -> Response:
 
 
 @router.post("/{score_id}/revisions")
-async def save_edit(score_id: uuid.UUID, body: SaveEdit, session: Session) -> Saved:
+async def save_edit(
+    score_id: uuid.UUID, body: SaveEdit, session: Session, user: CurrentUser
+) -> Saved:
     try:
+        await score_for(session, score_id, user)
         head = await service.save_edit(session, score_id, body.base, body.ops)
     except service.NotFound:
         raise _not_found() from None
@@ -109,8 +124,11 @@ async def save_edit(score_id: uuid.UUID, body: SaveEdit, session: Session) -> Sa
 
 
 @router.post("/{score_id}/restore")
-async def restore(score_id: uuid.UUID, body: Restore, session: Session) -> ScoreDetail:
+async def restore(
+    score_id: uuid.UUID, body: Restore, session: Session, user: CurrentUser
+) -> ScoreDetail:
     try:
+        await score_for(session, score_id, user)
         await service.restore(session, score_id, body.base, body.number)
         row = await service.get_score(session, score_id)
         score = await service.head_score(session, row)
@@ -122,16 +140,53 @@ async def restore(score_id: uuid.UUID, body: Restore, session: Session) -> Score
 
 
 @router.get("/{score_id}/history")
-async def history(score_id: uuid.UUID, session: Session) -> list[HistoryEntry]:
+async def history(score_id: uuid.UUID, session: Session, user: CurrentUser) -> list[HistoryEntry]:
     try:
+        await score_for(session, score_id, user)
         return await service.history(session, score_id)
     except service.NotFound:
         raise _not_found() from None
 
 
-@router.get("/{score_id}/revisions/{number}")
-async def get_revision(score_id: uuid.UUID, number: int, session: Session) -> RevisionDetail:
+def get_suggest_model() -> Model:
+    """FastAPI dependency (swapped out in tests)."""
+    return make_model(effort=get_settings().suggest_effort)
+
+
+@router.post("/{score_id}/suggest")
+async def suggest(
+    score_id: uuid.UUID,
+    body: SuggestRequest,
+    session: Session,
+    model: Annotated[Model, Depends(get_suggest_model)],
+    user: CurrentUser,
+) -> SuggestResponse:
+    """Tab autocomplete: notes for one hand in one bar. Empty `ops` means no suggestion."""
     try:
+        await score_for(session, score_id, user)
+        rev = await service.get_revision(session, score_id, body.base)
+    except service.NotFound:
+        raise _not_found() from None
+    score = Score.model_validate(rev.snapshot)
+    if body.measure > len(score.measures):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "bad_measure"})
+    # Done with the database; don't hold a connection open during the model call.
+    await session.close()
+    try:
+        result = await suggest_bar(score, body.measure, body.staff, model)
+    except Exception:
+        # Autocomplete is best-effort: a provider hiccup just means no suggestion.
+        log.warning("suggestion failed", exc_info=True)
+        return SuggestResponse(base=body.base, ops=[])
+    return SuggestResponse(base=body.base, ops=result.ops)
+
+
+@router.get("/{score_id}/revisions/{number}")
+async def get_revision(
+    score_id: uuid.UUID, number: int, session: Session, user: CurrentUser
+) -> RevisionDetail:
+    try:
+        await score_for(session, score_id, user)
         rev = await service.get_revision(session, score_id, number)
     except service.NotFound:
         raise _not_found() from None

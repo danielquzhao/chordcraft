@@ -8,6 +8,8 @@ from fastapi.responses import StreamingResponse
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.access import job_for, score_for
+from app.auth import CurrentUser
 from app.db import get_session
 from app.edits import events, service
 from app.edits.schemas import Accepted, CreateEdit, EditJob
@@ -34,8 +36,10 @@ async def create_edit(
     body: CreateEdit,
     session: Session,
     queue: Annotated[Queue, Depends(get_queue)],
+    user: CurrentUser,
 ) -> EditJob:
     try:
+        await score_for(session, score_id, user)
         row = await service.create_job(
             session, score_id, body.base, body.instruction, body.selection
         )
@@ -55,20 +59,26 @@ async def create_edit(
 
 
 @router.get("/edits/{job_id}")
-async def get_edit(job_id: uuid.UUID, session: Session) -> EditJob:
+async def get_edit(job_id: uuid.UUID, session: Session, user: CurrentUser) -> EditJob:
     try:
-        return job_view(await service.get_job(session, job_id))
+        return job_view(await job_for(session, job_id, user))
     except service.NotFound:
         raise _not_found() from None
 
 
 @router.get("/edits/{job_id}/events")
 async def edit_events(
-    job_id: uuid.UUID, session: Session, redis: Annotated[Redis, Depends(get_redis)]
+    job_id: uuid.UUID,
+    session: Session,
+    redis: Annotated[Redis, Depends(get_redis)],
+    user: CurrentUser,
 ) -> StreamingResponse:
-    """Server-sent events: the agent's steps as they happen, ending with a "done" event."""
+    """Server-sent events: the agent's steps as they happen, ending with a "done" event.
+
+    EventSource can't send headers, so with auth on the token comes as ?access_token=.
+    """
     try:
-        job = await service.get_job(session, job_id)
+        job = await job_for(session, job_id, user)
     except service.NotFound:
         raise _not_found() from None
 
@@ -89,8 +99,9 @@ async def edit_events(
 
 
 @router.post("/edits/{job_id}/accept")
-async def accept_edit(job_id: uuid.UUID, session: Session) -> Accepted:
+async def accept_edit(job_id: uuid.UUID, session: Session, user: CurrentUser) -> Accepted:
     try:
+        await job_for(session, job_id, user)
         head, score, ops = await service.accept(session, job_id)
     except service.NotFound:
         raise _not_found() from None
@@ -106,8 +117,9 @@ async def accept_edit(job_id: uuid.UUID, session: Session) -> Accepted:
 
 
 @router.post("/edits/{job_id}/reject", status_code=status.HTTP_204_NO_CONTENT)
-async def reject_edit(job_id: uuid.UUID, session: Session) -> Response:
+async def reject_edit(job_id: uuid.UUID, session: Session, user: CurrentUser) -> Response:
     try:
+        await job_for(session, job_id, user)
         await service.reject(session, job_id)
     except service.NotFound:
         raise _not_found() from None

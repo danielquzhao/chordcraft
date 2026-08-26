@@ -18,6 +18,7 @@ dependencies = [
     "google-genai>=2.31",
     "music21>=10.5",
     "python-multipart>=0.0.20",
+    "pyjwt[crypto]>=2.10",
 ]
 
 [project.optional-dependencies]
