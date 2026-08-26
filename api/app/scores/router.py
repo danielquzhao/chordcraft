@@ -70,6 +70,18 @@ async def create_score(body: CreateScore, session: Session, user: CurrentUser) -
     return ScoreDetail(**_summary(row).model_dump(), score=score)
 
 
+@router.post("/starter")
+async def starter_score(body: CreateScore, session: Session, user: CurrentUser) -> ScoreDetail:
+    """First run: create the example score if this user has none, else return their latest.
+
+    Idempotent, so two tabs opening at once end up with one example score, not two.
+    """
+    if body.score is None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "no_score"})
+    row, score = await service.ensure_starter(session, body.score, owner_id=user.id)
+    return ScoreDetail(**_summary(row).model_dump(), score=score)
+
+
 @router.post("/import", status_code=status.HTTP_201_CREATED)
 async def import_file(file: UploadFile, session: Session, user: CurrentUser) -> ScoreDetail:
     """Create a score from an uploaded MusicXML or MIDI file."""

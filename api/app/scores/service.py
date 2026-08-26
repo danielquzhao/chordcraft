@@ -4,7 +4,7 @@ import uuid
 from datetime import timedelta
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import RevisionRow, ScoreRow
@@ -54,6 +54,23 @@ async def create_score(
     await session.commit()
     await session.refresh(row)
     return row, score
+
+
+async def ensure_starter(
+    session: AsyncSession, score: Score, owner_id: str | None
+) -> tuple[ScoreRow, Score]:
+    """Create `score` for this owner only if they have no scores yet; otherwise return their
+    most recent one. A per-owner lock makes it safe when several tabs ask at once."""
+    owner_key = f"starter:{owner_id or 'local'}"
+    await session.execute(select(func.pg_advisory_xact_lock(func.hashtext(owner_key))))
+    query = select(ScoreRow).order_by(ScoreRow.updated_at.desc()).limit(1)
+    if owner_id is not None:
+        query = query.where(ScoreRow.owner_id == owner_id)
+    existing = await session.scalar(query)
+    if existing is not None:
+        await session.commit()  # release the lock
+        return existing, await head_score(session, existing)
+    return await create_score(session, score, owner_id=owner_id)
 
 
 async def get_score(session: AsyncSession, score_id: uuid.UUID, *, lock: bool = False) -> ScoreRow:

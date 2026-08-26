@@ -129,3 +129,22 @@ async def test_missing_and_deleted_scores_404(client):
     assert (await client.delete(f"/scores/{s['id']}")).status_code == 204
     assert (await client.get(f"/scores/{s['id']}")).status_code == 404
     assert (await client.get(f"/scores/{s['id']}/revisions/1")).status_code == 404
+
+
+async def test_starter_score_is_created_once(client):
+    """Two tabs opening an empty workspace at once get one example score between them."""
+    import asyncio
+
+    bodies = await asyncio.gather(
+        *(client.post("/scores/starter", json={"score": SKETCH}) for _ in range(4))
+    )
+    assert all(b.status_code == 200 for b in bodies), [b.text for b in bodies]
+    ids = {b.json()["id"] for b in bodies}
+    assert len(ids) == 1
+    assert len((await client.get("/scores")).json()) == 1
+
+    # With scores already there, it returns the latest instead of adding another.
+    other = (await client.post("/scores", json={"score": None})).json()
+    again = await client.post("/scores/starter", json={"score": SKETCH})
+    assert again.json()["id"] == other["id"]
+    assert len((await client.get("/scores")).json()) == 2

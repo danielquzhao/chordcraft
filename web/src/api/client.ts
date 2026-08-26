@@ -127,6 +127,8 @@ async function request<T>(
 export const api = {
   listScores: () => request<ScoreSummary[]>('GET', '/scores'),
   createScore: (score?: Score) => request<ScoreDetail>('POST', '/scores', { score: score ?? null }),
+  /** First run: the example score, created once even if several tabs ask at the same time. */
+  starterScore: (score: Score) => request<ScoreDetail>('POST', '/scores/starter', { score }),
   getScore: (id: string) => request<ScoreDetail>('GET', `/scores/${id}`),
   deleteScore: (id: string) => request<void>('DELETE', `/scores/${id}`),
   saveEdit: (id: string, base: number, ops: Op[]) =>

@@ -244,8 +244,10 @@ export const useEditor = create<EditorState>()((set, get) => {
         const wanted = idFromUrl()
         if (wanted && scores.some((s) => s.id === wanted)) return await get().open(wanted)
         if (scores.length) return await get().open(scores[0].id, { replaceUrl: true })
-        // First run: start with the example score so there's something to play with.
-        return await get().createScore(sketch as Score)
+        // First run: start with the example score so there's something to play with. The
+        // server creates it only once, even when several tabs open at the same moment.
+        const starter = await api.starterScore(sketch as Score)
+        return await get().open(starter.id, { replaceUrl: true })
       } catch {
         set({ loadError: "Couldn't reach the ChordCraft server." })
       }
