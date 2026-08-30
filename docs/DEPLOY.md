@@ -6,7 +6,7 @@
 | API (`api/`) | Railway | Docker image; runs migrations on start; health check `/health` |
 | Worker (`api/`) | Railway | Same image, start command `arq app.worker.WorkerSettings` |
 | Redis | Railway | Added from Railway's database templates |
-| Postgres, sign-in | Supabase | The project's database, plus auth (email links, optionally GitHub) |
+| Postgres, sign-in | Supabase | The project's database, plus auth (email sign-in links) |
 
 Everything deploys from the GitHub repo, so pushing to `main` redeploys.
 
@@ -16,7 +16,11 @@ Everything deploys from the GitHub repo, so pushing to `main` redeploys.
 2. **Authentication → URL Configuration**: set the Site URL to your Vercel URL (you'll have it
    after step 3; `http://localhost:5173` works for local testing) and add it to the redirect
    URLs.
-3. Optional: **Authentication → Providers → GitHub** to enable "Continue with GitHub".
+3. **Authentication → Emails → SMTP Settings**: connect a sender such as Resend (free tier,
+   with a domain you own verified there): host `smtp.resend.com`, port `465`, username
+   `resend`, password a Resend API key. Supabase's built-in sender only reaches your own team's
+   addresses, a couple of emails an hour; with custom SMTP the limit rises to 30 an hour
+   (**Rate Limits**).
 4. From **Project Settings → API**, note the project URL and the publishable (anon) key.
 5. From **Connect**, copy the **Session pooler** connection string and fill in the database
    password. (The direct connection is IPv6-only, which Railway can't reach by default.)
