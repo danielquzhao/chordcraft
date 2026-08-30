@@ -21,10 +21,13 @@ Everything deploys from the GitHub repo, so pushing to `main` redeploys.
    `resend`, password a Resend API key. Supabase's built-in sender only reaches your own team's
    addresses, a couple of emails an hour; with custom SMTP the limit rises to 30 an hour
    (**Rate Limits**).
-4. From **Project Settings → API**, note the project URL and the publishable (anon) key.
-5. From **Connect**, copy the **Session pooler** connection string and fill in the database
+4. **Authentication → Emails → Templates**: sign-in is by emailed code, not link (Outlook's
+   Safe Links scanner opens links first and uses them up). In both **Confirm sign up** and
+   **Magic link or OTP**, replace the link with the code, `{{ .Token }}`.
+5. From **Project Settings → API**, note the project URL and the publishable (anon) key.
+6. From **Connect**, copy the **Session pooler** connection string and fill in the database
    password. (The direct connection is IPv6-only, which Railway can't reach by default.)
-6. Optional: the app talks to Postgres directly, so you can turn off the Data API under
+7. Optional: the app talks to Postgres directly, so you can turn off the Data API under
    **Project Settings → Data API**.
 
 The API verifies tokens with the project's published signing keys, so it only needs the
@@ -87,7 +90,7 @@ the API converts them for asyncpg. Supabase's transaction pooler (port 6543) wor
 ## Checking it
 
 - `https://<your-api>/health` → `{"status":"ok","postgres":true,"redis":true}`
-- Open the Vercel URL, sign in with the emailed link, and ask the agent for an edit (⌘K). If
+- Open the Vercel URL, sign in with the emailed code, and ask the agent for an edit (⌘K). If
   it stays on "Reading the music…", check the worker's logs on Railway.
 
 ## Notes
