@@ -1229,23 +1229,3 @@ button:focus-visible {
   line-height: 1.55;
   color: var(--ink-2);
 }
-
-.signin-or {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--ink-3);
-  font-size: 12px;
-}
-
-.signin-or::before,
-.signin-or::after {
-  content: '';
-  flex: 1;
-  border-top: 1px solid var(--hairline);
-}
-
-.signin-github {
-  justify-content: center;
-  border: 1px solid var(--hairline);
-}

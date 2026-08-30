@@ -15,7 +15,6 @@ type AuthState = {
   ready: boolean
   session: Session | null
   signInWithEmail: (email: string) => Promise<string | null>
-  signInWithGitHub: () => Promise<string | null>
   signOut: () => Promise<void>
 }
 
@@ -30,15 +29,6 @@ export const useAuth = create<AuthState>()(() => ({
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: window.location.origin },
-    })
-    return error ? error.message : null
-  },
-
-  signInWithGitHub: async () => {
-    if (!supabase) return null
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'github',
-      options: { redirectTo: window.location.origin },
     })
     return error ? error.message : null
   },
