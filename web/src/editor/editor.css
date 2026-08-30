@@ -1225,7 +1225,17 @@ button:focus-visible {
 }
 
 .signin-sent {
-  margin: 0;
+  margin: 0 0 8px;
   line-height: 1.55;
   color: var(--ink-2);
+}
+
+.signin-code {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  letter-spacing: 0.3em;
+}
+
+.signin-back {
+  align-self: center;
 }

@@ -15,6 +15,7 @@ type AuthState = {
   ready: boolean
   session: Session | null
   signInWithEmail: (email: string) => Promise<string | null>
+  verifyCode: (email: string, code: string) => Promise<string | null>
   signOut: () => Promise<void>
 }
 
@@ -23,13 +24,20 @@ export const useAuth = create<AuthState>()(() => ({
   ready: supabase === null,
   session: null,
 
-  /** Sends a magic link. Returns an error message, or null on success. */
+  /**
+   * Emails a one-time code. A code rather than a link: mail scanners (Outlook Safe Links)
+   * open links before the person does, which uses them up. Returns an error message, or null.
+   */
   signInWithEmail: async (email) => {
     if (!supabase) return null
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin },
-    })
+    const { error } = await supabase.auth.signInWithOtp({ email })
+    return error ? error.message : null
+  },
+
+  /** Signs in with the emailed code; the session arrives through onAuthStateChange. */
+  verifyCode: async (email, code) => {
+    if (!supabase) return null
+    const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' })
     return error ? error.message : null
   },
 

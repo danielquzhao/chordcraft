@@ -3,12 +3,13 @@ import { useAuth } from './store'
 
 export function SignIn() {
   const [email, setEmail] = useState('')
+  const [code, setCode] = useState('')
   const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { signInWithEmail } = useAuth.getState()
+  const { signInWithEmail, verifyCode } = useAuth.getState()
 
-  async function sendLink(e: React.FormEvent) {
+  async function sendCode(e: React.FormEvent) {
     e.preventDefault()
     setBusy(true)
     setError(null)
@@ -16,6 +17,22 @@ export function SignIn() {
     setBusy(false)
     if (problem) setError(problem)
     else setSent(true)
+  }
+
+  async function checkCode(e: React.FormEvent) {
+    e.preventDefault()
+    setBusy(true)
+    setError(null)
+    const problem = await verifyCode(email.trim(), code)
+    // On success the session arrives and this screen goes away.
+    setBusy(false)
+    if (problem) setError(problem)
+  }
+
+  function startOver() {
+    setSent(false)
+    setCode('')
+    setError(null)
   }
 
   return (
@@ -33,12 +50,30 @@ export function SignIn() {
         <h1>Sign in to your scores</h1>
 
         {sent ? (
-          <p className="signin-sent" role="status">
-            Check <strong>{email}</strong> for a sign-in link. You can close this tab once you’ve
-            clicked it.
-          </p>
+          <form onSubmit={(e) => void checkCode(e)} className="signin-form">
+            <p className="signin-sent" role="status">
+              We sent a code to <strong>{email}</strong>.
+            </p>
+            <label htmlFor="signin-code">Code</label>
+            <input
+              id="signin-code"
+              className="field signin-code"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              autoFocus
+              required
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 10))}
+            />
+            <button type="submit" className="primary" disabled={busy || code.length < 6}>
+              {busy ? 'Checking…' : 'Sign in'}
+            </button>
+            <button type="button" className="tool text signin-back" onClick={startOver}>
+              Use a different email
+            </button>
+          </form>
         ) : (
-          <form onSubmit={(e) => void sendLink(e)} className="signin-form">
+          <form onSubmit={(e) => void sendCode(e)} className="signin-form">
             <label htmlFor="signin-email">Email</label>
             <input
               id="signin-email"
@@ -50,7 +85,7 @@ export function SignIn() {
               onChange={(e) => setEmail(e.target.value)}
             />
             <button type="submit" className="primary" disabled={busy || !email.trim()}>
-              {busy ? 'Sending…' : 'Email me a sign-in link'}
+              {busy ? 'Sending…' : 'Email me a sign-in code'}
             </button>
           </form>
         )}
