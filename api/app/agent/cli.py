@@ -28,6 +28,8 @@ DEFAULT_SCORE = Path(__file__).resolve().parents[3] / "fixtures" / "autumn-sketc
 PRICES = {
     "claude-opus-5-5": (4.00, 20.00, 0.20, 5.00),
     "claude-sonnet-5-5": (2.00, 10.00, 0.20, 2.50),
+    # Prompts up to 100K tokens; $0.50 / $2.50 above that.
+    "claude-haiku-5-5": (0.10, 0.50, 0.01, 0.125),
     # Introductory rates through 2026-12-31; $1.50 / $7.50 / $0.15 from 2027. Gemini's
     # implicit caching doesn't bill cache writes.
     "gemini-3.8-flash": (0.75, 3.75, 0.075, 0.0),

@@ -74,6 +74,12 @@ class ClaudeModel:
     async def turn(
         self, system: str, messages: list[dict[str, Any]], tools: list[dict[str, Any]]
     ) -> ModelTurn:
+        # Haiku has no server-side refusal fallback; Sonnet and Opus do.
+        fallback: dict[str, Any] = (
+            {}
+            if self.model.startswith("claude-haiku")
+            else {"betas": ["server-side-fallback-2026-07-01"], "fallbacks": "default"}
+        )
         response = await self.client.beta.messages.create(
             model=self.model,
             max_tokens=16000,
@@ -82,8 +88,7 @@ class ClaudeModel:
             tools=tools,  # type: ignore[arg-type]
             output_config={"effort": self.effort},  # type: ignore[typeddict-item]
             cache_control={"type": "ephemeral"},
-            betas=["server-side-fallback-2026-07-01"],
-            fallbacks="default",
+            **fallback,
         )
         calls = [
             ToolCall(id=b.id, name=b.name, input=dict(b.input))
