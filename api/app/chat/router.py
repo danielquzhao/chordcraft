@@ -4,9 +4,11 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
+from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import quota
 from app.access import score_for
 from app.agent.context import Selection
 from app.auth import CurrentUser
@@ -16,6 +18,7 @@ from app.edits.router import job_view
 from app.edits.schemas import EditJob, JobStatus
 from app.models import EditJobRow, MessageRow
 from app.queue import Queue, get_queue
+from app.redis import get_redis
 from app.scores import service as scores
 
 router = APIRouter(tags=["chat"])
@@ -77,9 +80,11 @@ async def send_message(
     body: SendMessage,
     session: Session,
     queue: Annotated[Queue, Depends(get_queue)],
+    redis: Annotated[Redis, Depends(get_redis)],
     user: CurrentUser,
 ) -> Sent:
     """Post a chat message; the agent answers it (or proposes an edit) as a background job."""
+    await quota.check_edits(redis, user)
     try:
         await score_for(session, score_id, user)
         job = await edits.create_job(
@@ -100,6 +105,7 @@ async def send_message(
     session.add(message)
     await session.commit()
     await session.refresh(message)
+    await quota.record(redis, user, "edits")
     await queue.enqueue_job("run_edit_job", str(job.id), _job_id=str(job.id))
     return Sent(
         message=Message(

@@ -23,10 +23,13 @@ class Settings(BaseSettings):
 
     # Agent (M3). The SDK also reads ANTHROPIC_API_KEY from the environment.
     anthropic_api_key: str = ""
-    agent_model: str = "claude-sonnet-5-5"  # or a gemini-* model id
+    agent_model: str = "claude-haiku-5-5"  # or claude-sonnet-5-5, or a gemini-* model id
     agent_effort: str = "medium"
     # Tab autocomplete: one quick call per suggestion, so keep thinking light.
     suggest_effort: str = "low"
+    # Per signed-in user per UTC day; 0 means unlimited.
+    daily_edit_limit: int = 30
+    daily_suggestion_limit: int = 300
     # Gemini (optional). The google-genai SDK also reads GEMINI_API_KEY / GOOGLE_API_KEY.
     gemini_api_key: str = ""
 

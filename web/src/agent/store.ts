@@ -65,6 +65,13 @@ export function currentSelection(hands: Hands): Selection {
   }
 }
 
+/** The server's own message when today's agent edits are used up, else null. */
+function dailyLimit(err: unknown): string | null {
+  if (!(err instanceof ApiError) || err.status !== 429) return null
+  const detail = err.detail as { message?: string } | null
+  return detail?.message ?? "You've used today's agent edits. Try again tomorrow."
+}
+
 const IDLE = {
   phase: 'idle' as Phase,
   selection: null,
@@ -164,9 +171,10 @@ export const useAgent = create<AgentState>()((set, get) => {
         void follow(job.id)
       } catch (err) {
         fail(
-          err instanceof ApiError && err.status === 409
-            ? 'The score changed while sending the request. Try again.'
-            : "Couldn't start the edit. Check that the API and worker are running.",
+          dailyLimit(err) ??
+            (err instanceof ApiError && err.status === 409
+              ? 'The score changed while sending the request. Try again.'
+              : "Couldn't start the edit. Check that the API and worker are running."),
         )
       }
     },
@@ -210,9 +218,10 @@ export const useAgent = create<AgentState>()((set, get) => {
         return true
       } catch (err) {
         fail(
-          err instanceof ApiError && err.status === 409
-            ? 'The score changed while sending. Try again.'
-            : "Couldn't send the message. Check that the API and worker are running.",
+          dailyLimit(err) ??
+            (err instanceof ApiError && err.status === 409
+              ? 'The score changed while sending. Try again.'
+              : "Couldn't send the message. Check that the API and worker are running."),
         )
         return false
       }

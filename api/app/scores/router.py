@@ -4,9 +4,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
+from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import quota
 from app.access import score_for
 from app.agent.model import Model, make_model
 from app.agent.suggest import suggest_bar
@@ -14,6 +16,7 @@ from app.auth import CurrentUser
 from app.config import get_settings
 from app.db import get_session
 from app.models import ScoreRow
+from app.redis import get_redis
 from app.score.model import Score
 from app.score.ops import OpError
 from app.scores import service
@@ -171,6 +174,7 @@ async def suggest(
     body: SuggestRequest,
     session: Session,
     model: Annotated[Model, Depends(get_suggest_model)],
+    redis: Annotated[Redis, Depends(get_redis)],
     user: CurrentUser,
 ) -> SuggestResponse:
     """Tab autocomplete: notes for one hand in one bar. Empty `ops` means no suggestion."""
@@ -184,6 +188,10 @@ async def suggest(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "bad_measure"})
     # Done with the database; don't hold a connection open during the model call.
     await session.close()
+    # Out of suggestions for today: quietly suggest nothing, like any other miss.
+    if await quota.remaining(redis, user, "suggestions") == 0:
+        return SuggestResponse(base=body.base, ops=[])
+    await quota.record(redis, user, "suggestions")
     try:
         result = await suggest_bar(score, body.measure, body.staff, model)
     except Exception:

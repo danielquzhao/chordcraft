@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import quota
 from app.access import job_for, score_for
 from app.auth import CurrentUser
 from app.db import get_session
@@ -36,8 +37,10 @@ async def create_edit(
     body: CreateEdit,
     session: Session,
     queue: Annotated[Queue, Depends(get_queue)],
+    redis: Annotated[Redis, Depends(get_redis)],
     user: CurrentUser,
 ) -> EditJob:
+    await quota.check_edits(redis, user)
     try:
         await score_for(session, score_id, user)
         row = await service.create_job(
@@ -54,6 +57,7 @@ async def create_edit(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"code": "bad_selection", "message": str(err)},
         ) from None
+    await quota.record(redis, user, "edits")
     await queue.enqueue_job("run_edit_job", str(row.id), _job_id=str(row.id))
     return job_view(row)
 
