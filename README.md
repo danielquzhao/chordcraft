@@ -1,10 +1,25 @@
 # ChordCraft
 
-Cursor for music composition: a piano score editor where you select measures, describe a change,
-and review the AI's edit as a ghost-note diff before accepting it.
+A piano score editor with a composing partner. Select a few bars, describe the change, and
+review the AI's edit note by note before it lands.
 
-See [docs/PLAN.md](docs/PLAN.md) for the architecture and roadmap, and
-[docs/DEPLOY.md](docs/DEPLOY.md) to deploy it (Vercel, Railway, Supabase).
+**Try it: [usechordcraft.vercel.app](https://usechordcraft.vercel.app)**
+
+![A pending edit in ChordCraft: a walking bass drafted in blue over measures 5–8](web/public/og.png)
+
+- **Edit by describing it.** Press ⌘K on a selection, or ask in the chat panel. Only the bars
+  you picked change.
+- **Review the diff.** Drafted notes show in blue and the notes they replace in dashed orange,
+  right on the staff. Listen, then accept (⌘↵) or reject the whole edit.
+- **Checked before you see it.** A music checker sends back bars that don't add up and flags
+  out-of-range notes, parallel fifths and odd spellings.
+- **Tab to continue.** Pause at the end of a phrase and it suggests the next bar.
+- **Every edit is a version.** Undo, redo, and restore any earlier revision.
+- **Start anywhere.** A blank page, a chord progression, or an imported MusicXML or MIDI file.
+
+Built with React, TypeScript, VexFlow and Tone.js on the front end; FastAPI, PostgreSQL, Redis
+and a LangGraph agent on Claude behind it. See [docs/PLAN.md](docs/PLAN.md) for the
+architecture, and [docs/DEPLOY.md](docs/DEPLOY.md) to run your own (Vercel, Railway, Supabase).
 
 ## Layout
 
@@ -51,8 +66,9 @@ npm install
 npm run dev
 ```
 
-The web app proxies `/api/*` to `http://localhost:8000`. Open http://localhost:5173 and the
-health panel should report `postgres: true` and `redis: true`.
+The web app proxies `/api/*` to `http://localhost:8000`. Open http://localhost:5173; without
+Supabase settings in `web/.env.local` there's no sign-in. `http://localhost:8000/health` should
+report `postgres: true` and `redis: true`.
 
 ## Edit agent (command line)
 
@@ -70,3 +86,7 @@ cd api && .venv/bin/python -m app.agent.cli "Turn the left hand into a walking b
 cd api && .venv/bin/ruff check . && .venv/bin/pytest -q
 cd web && npm run lint && npm test && npm run build
 ```
+
+## License
+
+[MIT](LICENSE)
