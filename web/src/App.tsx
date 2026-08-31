@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
-import { SignIn } from './auth/SignIn'
 import { useAuth } from './auth/store'
 import { Editor } from './editor/Editor'
 import { NewScore } from './editor/NewScore'
 import { useEditor } from './editor/store'
+import { Landing } from './landing/Landing'
 
 let loadedFor: string | null | undefined
 
@@ -23,7 +23,7 @@ function App() {
   }, [ready, signedIn, userId])
 
   if (!ready) return null
-  if (!signedIn) return <SignIn />
+  if (!signedIn) return <Landing />
   return screen === 'new' ? <NewScore /> : <Editor />
 }
 
