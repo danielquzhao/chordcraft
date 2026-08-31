@@ -477,15 +477,6 @@ button:focus-visible {
 }
 
 /* Agent edits */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
 .tool.ask {
   color: var(--added);
   border: 1px solid #c9d3ee;

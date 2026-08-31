@@ -1,14 +1,13 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { useAuth } from './auth/store'
-import { Editor } from './editor/Editor'
-import { NewScore } from './editor/NewScore'
 import { useEditor } from './editor/store'
 import { Landing } from './landing/Landing'
+
+const Workspace = lazy(() => import('./editor/Workspace'))
 
 let loadedFor: string | null | undefined
 
 function App() {
-  const screen = useEditor((s) => s.screen)
   const authEnabled = useAuth((s) => s.enabled)
   const ready = useAuth((s) => s.ready)
   const userId = useAuth((s) => s.session?.user.id ?? null)
@@ -24,7 +23,11 @@ function App() {
 
   if (!ready) return null
   if (!signedIn) return <Landing />
-  return screen === 'new' ? <NewScore /> : <Editor />
+  return (
+    <Suspense fallback={null}>
+      <Workspace />
+    </Suspense>
+  )
 }
 
 export default App

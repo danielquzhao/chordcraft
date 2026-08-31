@@ -10,7 +10,6 @@ import type { Staff } from '../score/types'
 import { Sidebar } from './Sidebar'
 import { useAutocomplete } from './useAutocomplete'
 import { DURATIONS, saveStatus, useEditor, type SaveStatus } from './store'
-import './editor.css'
 
 const STATUS_TEXT: Record<SaveStatus, string> = {
   saved: 'Saved',
