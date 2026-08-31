@@ -45,7 +45,7 @@ project URL. (`SUPABASE_JWT_SECRET` is only for projects still on the legacy sha
    DATABASE_URL=postgresql://postgres.<project>:<password>@<region>.pooler.supabase.com:5432/postgres
    REDIS_URL=${{Redis.REDIS_URL}}
    ANTHROPIC_API_KEY=sk-ant-...
-   AGENT_MODEL=claude-sonnet-5-5
+   AGENT_MODEL=claude-haiku-5-5
    AGENT_EFFORT=medium
    SUPABASE_URL=https://<project>.supabase.co
    CORS_ORIGINS=["https://<your-app>.vercel.app"]
@@ -96,5 +96,8 @@ the API converts them for asyncpg. Supabase's transaction pooler (port 6543) wor
 ## Notes
 
 - Scores made locally (without sign-in) have no owner and won't appear for signed-in users.
-- Each agent edit is a few cents on your Anthropic account; Tab suggestions about a cent each
-  (they can be turned off in the toolbar).
+- On Claude Haiku 5.5 an agent edit costs well under a cent (roughly 0.1–0.4¢) and a Tab
+  suggestion less; Claude Sonnet 5.5 (`AGENT_MODEL=claude-sonnet-5-5`) is about 20× that.
+- Each signed-in user gets 30 agent edits (⌘K and chat together) and 300 Tab suggestions per
+  UTC day; change with `DAILY_EDIT_LIMIT` / `DAILY_SUGGESTION_LIMIT` (0 = unlimited). Also set
+  a monthly spend limit in the Anthropic Console as a backstop.
